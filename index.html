@@ -624,7 +624,9 @@ let largeTextFontSize = 48;
 // verse global ID: บท s, วรรค v (1-4) => (s-1)*4 + v
 function vid(s, v) { return (s - 1) * 4 + v; }
 
-// ===== SAMPHUS LOGIC (ported from original) =====
+// ===== SAMPHUS LOGIC (full version — ported from อินทรวิเชียรฉันท์ 11) =====
+
+// ตัดตัวการันต์และพยัญชนะที่ถูกกำกับ (เช่น วรรต์ → วรรต, มารค → มาร)
 function removeKaran(word) {
   let r = word;
   while (r.includes('์')) {
@@ -633,32 +635,103 @@ function removeKaran(word) {
   }
   return r;
 }
+
+// จัดการ ห นำ (หนู→นู, หมา→มา ฯลฯ)
 function processLeadingConsonants(word) {
+  const anamYWords = ['อย่า','อยู่','อย่าง','อยาก'];
+  for (let aw of anamYWords) {
+    if (word.startsWith(aw.replace(/[่้๊๋์]/g,''))) return 'ย' + word.substring(2);
+  }
   if (word.length >= 2 && word.charAt(0) === 'ห' && 'งยญรนลมว'.includes(word.charAt(1)))
     return word.substring(1);
   return word;
 }
+
+// วิเคราะห์คำบาลี/สันสกฤต ที่มีรูป สระยาว + พยัญชนะ + สระสั้น ิ/ึ/ุ
+// เช่น ชาติ → สระ อา + ตัวสะกด ต (กด)
+//      เหตุ → สระ เอ + ตัวสะกด ต (กด)
+//      ราษฎร์ → หลัง removeKaran = ราษฎ → สระ อา + ตัวสะกด ฎ (กด)
+function analyzePaliStructure(word) {
+  const consonants = 'กขคฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ';
+  const shortEndVowels = 'ิึุ';
+  const longVowels = ['า','ี','ื','ู','เ','แ','โ','อ'];
+
+  const lastChar = word.charAt(word.length - 1);
+  if (!shortEndVowels.includes(lastChar) || word.length < 3) return { isPali: false };
+
+  const beforeLast = word.charAt(word.length - 2);
+  if (!consonants.includes(beforeLast)) return { isPali: false };
+
+  // มีพยัญชนะซ้อน? เช่น กิจจ + ุ, ราษฎ + ร + ิ
+  const prefix = word.substring(0, word.length - 2);
+
+  for (let v of longVowels) {
+    if (prefix.includes(v)) {
+      return { isPali: true, finalConsonant: beforeLast, mainVowel: v };
+    }
+  }
+  // กรณีสระหน้า เ- แ- โ-
+  if ('เแโ'.includes(word.charAt(0))) {
+    return { isPali: true, finalConsonant: beforeLast, mainVowel: word.charAt(0) };
+  }
+  return { isPali: false };
+}
+
 function hasAiVowel(word) {
   if (word.includes('ไ') || word.includes('ใ') || word.includes('ัย')) return true;
-  return ['วัย','ชัย','ภัย','ไทย','อัย','ขัย','นัย','ลัย','สัย'].some(w => word === w || word.endsWith(w));
+  const aiWords = ['วัย','ชัย','ภัย','ไทย','อัย','ขัย','นัย','ลัย','สัย',
+                   'ปัจจัย','อาศัย','วิสัย','ปรนัย','อุปัย','วิธัย'];
+  return aiWords.some(w => word === w || word.endsWith(w));
 }
+
+// หมวดตัวสะกด — รองรับ analyzePaliStructure เพื่อให้ ชาติ สัมผัส กาจ ได้
 function getFinalConsonantGroup(word) {
   if (hasAiVowel(word)) return 'เกย';
-  const map = {'ก':'กก','ข':'กก','ค':'กก','ฆ':'กก','จ':'กด','ช':'กด','ซ':'กด','ด':'กด','ต':'กด','ถ':'กด','ท':'กด','ธ':'กด','ศ':'กด','ษ':'กด','ส':'กด','ฏ':'กด','ฐ':'กด','ฑ':'กด','ฒ':'กด','ฌ':'กด','บ':'กบ','ป':'กบ','พ':'กบ','ฟ':'กบ','ภ':'กบ','น':'กน','ณ':'กน','ร':'กน','ล':'กน','ฬ':'กน','ญ':'กน','ม':'กม','ง':'กง','ย':'เกย','ว':'เกอว'};
+
+  const map = {
+    'ก':'กก','ข':'กก','ค':'กก','ฆ':'กก',
+    'จ':'กด','ช':'กด','ซ':'กด','ด':'กด','ต':'กด','ถ':'กด','ท':'กด','ธ':'กด',
+    'ศ':'กด','ษ':'กด','ส':'กด','ฏ':'กด','ฐ':'กด','ฑ':'กด','ฒ':'กด','ฌ':'กด',
+    'บ':'กบ','ป':'กบ','พ':'กบ','ฟ':'กบ','ภ':'กบ',
+    'น':'กน','ณ':'กน','ร':'กน','ล':'กน','ฬ':'กน','ญ':'กน',
+    'ม':'กม','ง':'กง','ย':'เกย','ว':'เกอว'
+  };
+
+  // ตรวจโครงสร้างบาลี/สันสกฤตก่อน (ชาติ เหตุ กิติ ราษฎร์ ฯลฯ)
+  const pali = analyzePaliStructure(word);
+  if (pali.isPali && pali.finalConsonant) {
+    return map[pali.finalConsonant] || 'กกา';
+  }
+
   return map[word.charAt(word.length - 1)] || 'กกา';
 }
+
+// เสียงสระ — รองรับ analyzePaliStructure เพื่อให้ ชาติ → อา, เหตุ → เอ
 function getVowelSound(word) {
   if (!word) return '';
   let w = processLeadingConsonants(removeKaran(word.replace(/[่้๊๋]/g, '')));
+
   if (hasAiVowel(w)) return 'ไอ';
+
+  // โครงสร้างบาลี/สันสกฤต: สระยาว + พยัญชนะ + ิ/ึ/ุ
+  const pali = analyzePaliStructure(w);
+  if (pali.isPali && pali.mainVowel) {
+    const vm = { 'า':'อา','ี':'อี','ื':'อื','ู':'อู','เ':'เอ','แ':'แอ','โ':'โอ','อ':'ออ' };
+    return vm[pali.mainVowel] || pali.mainVowel;
+  }
+
   if (/รรม/.test(w)) return 'อำ';
   if (/รร/.test(w))  return 'อะ';
   if (w.includes('ำ'))  return 'อำ';
   if (w.includes('เ') && w.includes('ีย')) return 'เอีย';
   if (w.includes('เ') && w.includes('ือ')) return 'เอือ';
   if (w.includes('ัว')) return 'อัว';
+  if (w.includes('เ') && w.includes('าะ')) return 'เอาะ';
+  if (w.includes('เ') && w.includes('อะ')) return 'เออะ';
   if (w.includes('เ') && w.includes('อ') && !w.includes('า')) return 'เออ';
   if (w.includes('เ') && w.includes('า')) return 'เอา';
+  if (w.includes('แ') && w.includes('ะ')) return 'แอะ';
+  if (w.includes('โ') && w.includes('ะ')) return 'โอะ';
   if (w.includes('แ')) return 'แอ';
   if (w.includes('โ')) return 'โอ';
   if (w.includes('ื')) return 'อื';
@@ -672,28 +745,79 @@ function getVowelSound(word) {
   if (w.includes('ะ') || w.includes('ั')) return 'อะ';
   return 'อะ';
 }
+
+// รวมสระ + หมวดตัวสะกด — รองรับ รอหัน (รร) ทุกกรณี
 function getVowelAndFinalSound(word) {
   if (!word) return { vowel: '', finalGroup: '' };
-  let w = processLeadingConsonants(removeKaran(word.replace(/[่้๊๋]/g, '')));
+
+  let cleanWord = word.replace(/[่้๊๋]/g, '');
+  cleanWord = removeKaran(cleanWord);
+  const w = processLeadingConsonants(cleanWord);
+
+  // รอหัน (รร) — สะกดไม่ตรงมาตรา แต่เสียงตรงกัน
   if (/รร[ถตษสศดจชฎฏฐฑฒทธ]$/.test(w)) return { vowel: 'อะ', finalGroup: 'กด' };
-  if (/รร[คกขฆ]$/.test(w)) return { vowel: 'อะ', finalGroup: 'กก' };
-  if (/รร[พภบปฟ]$/.test(w)) return { vowel: 'อะ', finalGroup: 'กบ' };
-  if (w.endsWith('รรม')) return { vowel: 'อำ', finalGroup: 'กกา' };
-  if (/รร/.test(w)) return { vowel: 'อะ', finalGroup: 'กน' };
+  if (/รร[คกขฆ]$/.test(w))             return { vowel: 'อะ', finalGroup: 'กก' };
+  if (/รร[พภบปฟ]$/.test(w))            return { vowel: 'อะ', finalGroup: 'กบ' };
+  if (/รร[นณรลฬ]$/.test(w))            return { vowel: 'อะ', finalGroup: 'กน' };
+  if (/รร[มง]$/.test(w) && w.endsWith('รรม')) return { vowel: 'อำ', finalGroup: 'กกา' };
+  if (w.endsWith('รรม'))  return { vowel: 'อำ', finalGroup: 'กกา' };
+  if (w.endsWith('รรณ'))  return { vowel: 'อะ', finalGroup: 'กน' };
+  if (/รร$/.test(w))      return { vowel: 'อะ', finalGroup: 'กน' };
+
+  if (hasAiVowel(w)) return { vowel: 'ไอ', finalGroup: 'เกย' };
+
   return { vowel: getVowelSound(word), finalGroup: getFinalConsonantGroup(w) };
 }
+
 function checkSamphus(w1, w2) {
   if (!w1 || !w2) return false;
   w1 = w1.trim(); w2 = w2.trim();
   if (!w1 || !w2) return false;
   const s1 = getVowelAndFinalSound(w1), s2 = getVowelAndFinalSound(w2);
-  return s1.vowel === s2.vowel && s1.finalGroup === s2.finalGroup && s1.vowel !== '' && s1.finalGroup !== '';
+  return s1.vowel === s2.vowel && s1.finalGroup === s2.finalGroup
+      && s1.vowel !== '' && s1.finalGroup !== '';
 }
+
+// หาหมวดพยัญชนะต้น — ใช้ตรวจว่าเป็น "คำเดียวกัน" (สัมผัสซ้ำ/เสียงพ้อง)
+function getInitialConsonantGroup(word) {
+  if (!word) return '';
+  let w = word.replace(/[่้๊๋์]/g,'');
+  w = removeKaran(w);
+
+  let startIdx = 0;
+  if ('เแโใไ'.includes(w.charAt(0))) startIdx = 1;
+  if (startIdx >= w.length) return '';
+
+  const first = w.charAt(startIdx);
+
+  // ห นำ / อ นำ → ดูพยัญชนะตัวถัดไป
+  if ((first === 'ห' || first === 'อ') && startIdx + 1 < w.length) {
+    const sec = w.charAt(startIdx + 1);
+    if ('งญยรนลมว'.includes(sec)) return first + sec;
+  }
+
+  const grp = {
+    'ก':'k','ข':'kh','ค':'kh','ฅ':'kh','ฆ':'kh',
+    'ง':'ng',
+    'จ':'j','ฉ':'ch','ช':'ch','ฌ':'ch',
+    'ซ':'s','ศ':'s','ษ':'s','ส':'s',
+    'ญ':'y','ย':'y',
+    'ฎ':'d','ด':'d','ฏ':'t','ต':'t',
+    'ฐ':'th','ฑ':'th','ฒ':'th','ถ':'th','ท':'th','ธ':'th',
+    'ณ':'n','น':'n',
+    'บ':'b','ป':'p',
+    'ผ':'ph','พ':'ph','ภ':'ph','ฝ':'f','ฟ':'f',
+    'ม':'m','ร':'r','ล':'l','ฬ':'l','ว':'w',
+    'ห':'h','ฮ':'h','อ':'a'
+  };
+  return grp[first] || first;
+}
+
+// คำที่สัมผัสกัน + เสียงพยัญชนะต้นเหมือนกัน = เสียงพ้อง (ควรเตือน)
 function isHomophone(w1, w2) {
   if (!checkSamphus(w1, w2)) return false;
-  const c1 = w1.replace(/[่้๊๋์ะัาำิีึืุูเแโใไๅ]/g,'').charAt(0);
-  const c2 = w2.replace(/[่้๊๋์ะัาำิีึืุูเแโใไๅ]/g,'').charAt(0);
-  return c1 === c2 && c1 !== '';
+  return getInitialConsonantGroup(w1) === getInitialConsonantGroup(w2)
+      && getInitialConsonantGroup(w1) !== '';
 }
 
 // ===== BUILD HTML =====
