@@ -1,0 +1,1179 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เครื่องมือช่วยแต่งกาพย์ยานี ๑๑</title>
+  <link id="favicon-link" rel="icon" type="image/png" href="https://img5.pic.in.th/file/secure-sv1/logo-vichakarngo-6.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap');
+
+    body {
+      box-sizing: border-box;
+      font-family: 'Prompt', 'Kanit', 'Sarabun', 'Noto Sans Thai', Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      margin: 0;
+      padding: 20px;
+      min-height: 100%;
+      padding-bottom: 80px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      padding: 30px;
+    }
+
+    .logo-section {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 10px 0;
+    }
+
+    .logo {
+      max-width: 200px;
+      max-height: 120px;
+      width: auto;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .logo:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+
+    .header { text-align: center; margin-bottom: 30px; position: relative; }
+
+    .header-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 10px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      font-weight: 400;
+      color: #7f8c8d;
+      margin-bottom: 20px;
+    }
+
+    .gear-btn {
+      background: #f1f5f9;
+      border: 1.5px solid #cbd5e0;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: #64748b;
+      position: absolute;
+      right: 0;
+      top: 0;
+    }
+    .gear-btn:hover {
+      background: #e0e7ff;
+      border-color: #6366f1;
+      color: #4f46e5;
+      transform: rotate(60deg);
+    }
+
+    .pattern-info {
+      background: #e8f4f8;
+      border-left: 4px solid #3498db;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .gold-button-container { text-align: center; margin: 30px 0 10px 0; }
+    .gold-btn {
+      background: linear-gradient(45deg, #FFD700, #FDB931, #FFD700);
+      border: 2px solid #DAA520;
+      color: #5c3a00;
+      font-weight: 700;
+      font-size: 1.1em;
+      text-decoration: none;
+      padding: 15px 25px;
+      border-radius: 50px;
+      display: inline-block;
+      box-shadow: 0 4px 15px rgba(218,165,32,0.4);
+      transition: all 0.3s ease;
+      animation: pulse-gold 2s infinite;
+      position: relative;
+      overflow: hidden;
+    }
+    .gold-btn:hover { transform: translateY(-3px) scale(1.02); color: #3d2600; }
+    @keyframes pulse-gold {
+      0% { box-shadow: 0 0 0 0 rgba(255,215,0,0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(255,215,0,0); }
+      100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); }
+    }
+
+    .stanza-header {
+      background-color: #e2e8f0;
+      padding: 10px;
+      border-radius: 8px;
+      margin: 20px 0 15px 0;
+      text-align: center;
+      font-weight: bold;
+      color: #2d3748;
+      font-size: 1.2em;
+      border: 2px dashed #cbd5e0;
+    }
+
+    .verse-section {
+      margin-bottom: 20px;
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #e9ecef;
+    }
+
+    .verse-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .verse-title { font-size: 18px; font-weight: 600; color: #2c3e50; }
+
+    .word-inputs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .word-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .word-input {
+      width: 100%;
+      padding: 10px 5px;
+      font-size: 16px;
+      border: 2px solid #bdc3c7;
+      border-radius: 8px;
+      text-align: center;
+      transition: all 0.3s ease;
+      font-family: 'Prompt', 'Kanit', 'Sarabun', 'Noto Sans Thai', Arial, sans-serif;
+    }
+    .word-input:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 8px rgba(52,152,219,0.3);
+    }
+
+    .word-label { font-size: 12px; font-weight: 500; color: #7f8c8d; }
+
+    .verse-feedback {
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      min-height: 20px;
+      transition: all 0.3s ease;
+      background-color: #e8f4f8;
+      color: #2c3e50;
+      border: 1px solid #bee5eb;
+    }
+
+    .pattern-display { display: flex; justify-content: center; gap: 4px; flex-wrap: wrap; }
+
+    .syllable {
+      padding: 4px 8px;
+      border-radius: 15px;
+      font-size: 11px;
+      font-weight: 500;
+      background: #dee2e6;
+      color: #495057;
+    }
+    .syllable.samphus-send    { background-color: #e67e22 !important; color: white; }
+    .syllable.samphus-receive { background-color: #9b59b6 !important; color: white; }
+    .syllable.samphus-cross   { background-color: #e91e63 !important; color: white; }
+
+    .word-input.samphus-send    { border: 3px solid #e67e22 !important; box-shadow: 0 0 5px rgba(230,126,34,0.4) !important; }
+    .word-input.samphus-receive { border: 3px solid #9b59b6 !important; box-shadow: 0 0 5px rgba(155,89,182,0.4) !important; }
+    .word-input.samphus-cross   { border: 3px solid #e91e63 !important; box-shadow: 0 0 5px rgba(233,30,99,0.4) !important; }
+
+    .samphus-indicator { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 8px; color: white; margin-top: 2px; }
+    .samphus-send-indicator    { background-color: #e67e22; }
+    .samphus-receive-indicator { background-color: #9b59b6; }
+    .samphus-cross-indicator   { background-color: #e91e63; }
+
+    .samphus-info {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .samphus-feedback { margin-top: 5px; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+    .samphus-correct  { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+    .samphus-incorrect{ background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+    .samphus-warning  { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; }
+    .samphus-pending  { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+    .vowel-overuse-feedback { background-color: #fce4ec; border: 1px solid #f8bbd9; color: #880e4f; }
+
+    .result-section {
+      margin-top: 30px;
+      background: #f8f9fa;
+      padding: 25px;
+      border-radius: 12px;
+      border: 2px solid #e9ecef;
+    }
+    .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+    .result-title { font-size: 20px; font-weight: 600; color: #2c3e50; margin: 0; }
+    .button-group { display: flex; gap: 10px; }
+
+    .copy-button {
+      background: #3498db; color: white; border: none; padding: 10px 20px;
+      border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;
+      transition: all 0.3s ease; display: flex; align-items: center; gap: 5px;
+      font-family: 'Prompt','Kanit',sans-serif;
+    }
+    .copy-button:hover { background: #2980b9; transform: translateY(-1px); }
+    .copy-button.copied { background: #27ae60; }
+
+    .reset-button {
+      background: #e74c3c; color: white; border: none; padding: 10px 20px;
+      border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;
+      transition: all 0.3s ease; display: flex; align-items: center; gap: 5px;
+      font-family: 'Prompt','Kanit',sans-serif;
+    }
+    .reset-button:hover { background: #c0392b; transform: translateY(-1px); }
+
+    .verse-count-button {
+      background: #6366f1; color: white; border: none; padding: 10px 20px;
+      border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;
+      transition: all 0.3s ease; display: flex; align-items: center; gap: 5px;
+      font-family: 'Prompt','Kanit',sans-serif;
+    }
+    .verse-count-button:hover { background: #4f46e5; transform: translateY(-1px); }
+
+    .result-content {
+      background: white; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6;
+      min-height: 120px; font-family: 'Prompt','Kanit','Sarabun','Noto Sans Thai',Arial,sans-serif;
+      line-height: 1.8; font-size: 16px;
+    }
+    .result-placeholder { color: #6c757d; font-style: italic; text-align: center; padding: 40px 20px; }
+    .result-verse { margin-bottom: 5px; }
+    .result-stanza-gap { margin-bottom: 25px; }
+    .verse-line { color: #2c3e50; font-weight: 500; }
+
+    .footer-counter { margin-top: 40px; text-align: center; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #7f8c8d; font-size: 14px; }
+    .counter-container { margin-top: 10px; display: inline-flex; align-items: center; gap: 8px; padding: 5px 15px; background: white; border-radius: 20px; border: 1px solid #cbd5e0; }
+    .counter-badge { font-weight: bold; color: #2c3e50; font-size: 16px; }
+
+    .top-controls { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+
+    .floating-btn {
+      position: fixed; bottom: 30px; right: 30px;
+      background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+      color: white; border: none; border-radius: 50px; padding: 12px 24px;
+      box-shadow: 0 4px 15px rgba(255,107,107,0.4);
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      transition: all 0.3s ease; z-index: 1000;
+      font-family: 'Prompt','Kanit',sans-serif; font-size: 14px; font-weight: 600;
+    }
+    .floating-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(255,107,107,0.6); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px); z-index: 1050;
+      display: none; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: white; border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+      width: 100%; max-width: 440px; padding: 28px;
+      animation: fadeInUp 0.35s ease-out;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Large Text Modal */
+    .largetext-overlay {
+      position: fixed; inset: 0;
+      background: #0f172a;
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      animation: fadeInBg 0.3s ease;
+    }
+    .largetext-overlay.active { display: flex; }
+    @keyframes fadeInBg {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    .largetext-close {
+      position: fixed; top: 20px; right: 24px;
+      background: rgba(255,255,255,0.15);
+      border: none; border-radius: 50%;
+      width: 44px; height: 44px;
+      color: white; font-size: 22px; font-weight: 300;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .largetext-close:hover { background: rgba(255,255,255,0.3); }
+    .largetext-size-controls {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 16px;
+      background: rgba(255,255,255,0.1); border-radius: 50px;
+      padding: 10px 24px;
+    }
+    .size-btn {
+      background: rgba(255,255,255,0.2); border: none; color: white;
+      width: 36px; height: 36px; border-radius: 50%; font-size: 18px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .size-btn:hover { background: rgba(255,255,255,0.4); }
+    .size-label { color: rgba(255,255,255,0.7); font-size: 13px; min-width: 60px; text-align: center; }
+    .largetext-content {
+      text-align: center; color: white;
+      font-family: 'Prompt', 'Kanit', 'Noto Sans Thai', sans-serif;
+      line-height: 1.9; max-width: 900px; width: 100%;
+      overflow-y: auto; max-height: calc(100vh - 140px);
+    }
+    .largetext-verse { margin-bottom: 4px; }
+    .largetext-gap { margin-bottom: 2em; }
+    .modal-title    { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
+    .modal-subtitle { font-size: 13px; color: #64748b; margin: 0 0 20px; }
+    .form-label  { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; margin-top: 2px; }
+    .form-input  { width: 100%; padding: 10px 14px; border: 1.5px solid #d1d5db; border-radius: 10px; font-size: 14px; font-family: 'Prompt','Kanit',sans-serif; transition: all 0.2s; margin-bottom: 12px; box-sizing: border-box; }
+    .form-input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+
+    .star-inactive { color: #e2e8f0; cursor: pointer; }
+    .star-active   { color: #fbbf24; cursor: pointer; }
+
+    .count-controls { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 16px 0; }
+    .count-btn {
+      width: 44px; height: 44px; border-radius: 50%; border: 2px solid #6366f1;
+      background: white; color: #6366f1; font-size: 24px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+    }
+    .count-btn:hover { background: #6366f1; color: white; }
+    .count-number { font-size: 36px; font-weight: 700; color: #1e293b; min-width: 60px; text-align: center; }
+
+    .modal-btn-row { display: flex; gap: 10px; margin-top: 16px; }
+    .modal-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Prompt','Kanit',sans-serif; transition: all 0.2s; }
+    .modal-btn-cancel  { background: #f1f5f9; color: #475569; }
+    .modal-btn-cancel:hover { background: #e2e8f0; }
+    .modal-btn-primary { background: #6366f1; color: white; }
+    .modal-btn-primary:hover { background: #4f46e5; }
+
+    @media (max-width: 768px) {
+      .container { margin: 10px; padding: 20px; }
+      .title { font-size: 22px; }
+      .gear-btn { position: static; transform: none; }
+      .gear-btn:hover { transform: rotate(60deg); }
+      .header-title-row { flex-wrap: wrap; justify-content: center; }
+      .result-header { flex-direction: column; align-items: stretch; }
+      .copy-button, .reset-button, .verse-count-button { justify-content: center; width: 100%; }
+      .button-group { flex-direction: column; width: 100%; }
+      .top-controls { flex-direction: column; }
+      .gold-btn { width: 100%; box-sizing: border-box; font-size: 1em; padding: 12px 15px; }
+      .floating-btn { bottom: 20px; right: 20px; padding: 10px 18px; font-size: 13px; }
+      .word-inputs {
+        display: flex; flex-direction: row; flex-wrap: nowrap;
+        overflow-x: auto; gap: 6px; padding-bottom: 8px; -webkit-overflow-scrolling: touch;
+      }
+      .word-inputs::-webkit-scrollbar { height: 4px; }
+      .word-inputs::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
+      .word-group { flex-shrink: 0; min-width: 60px; max-width: 70px; }
+      .word-input { font-size: 13px; padding: 8px 3px; width: 100%; }
+      .samphus-indicator { font-size: 8px; padding: 1px 4px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="logo-section">
+    <img id="logo-img" src="https://img5.pic.in.th/file/secure-sv1/logo-vichakarngo-6.png"
+      alt="โลโก้" class="logo" onerror="this.style.display='none'">
+  </div>
+
+  <div class="header">
+    <div class="header-title-row">
+      <h1 class="title" id="app-title">เครื่องมือช่วยแต่งกาพย์ยานี ๑๑ (๒ บท)</h1>
+      <button class="gear-btn" onclick="openSettings()" title="ตั้งค่า">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+    <p class="subtitle">พัฒนาโดย ครูนนทพัทธ์ หิรัญเรือง</p>
+  </div>
+
+  <div class="pattern-info">
+    <h3 style="text-align:center;color:#2c3e50;margin-bottom:12px;">ฉันทลักษณ์กาพย์ยานี ๑๑</h3>
+    <div style="text-align:center;font-size:14px;color:#2c3e50;line-height:2;">
+      <div>๑ บท มี <strong>๔ วรรค</strong> · วรรค ๑,๓: <strong>๕ คำ</strong> · วรรค ๒,๔: <strong>๖ คำ</strong></div>
+      <div>
+        <span style="background:#e67e22;color:white;padding:2px 7px;border-radius:4px;font-size:12px;font-weight:bold;margin-right:3px;">ส่ง</span>คำสุดท้ายวรรค ๑ (คำที่ ๕) → คำที่ ๓ วรรค ๒ &nbsp;·&nbsp;
+        คำสุดท้ายวรรค ๒ (คำที่ ๖) → คำสุดท้ายวรรค ๓ (คำที่ ๕)
+      </div>
+      <div>
+        <span style="background:#e91e63;color:white;padding:2px 7px;border-radius:4px;font-size:12px;font-weight:bold;margin-right:3px;">เชื่อม</span>คำสุดท้ายวรรค ๔ (คำที่ ๖) → คำสุดท้ายวรรค ๒ (คำที่ ๖) ของบทถัดไป
+      </div>
+    </div>
+  </div>
+
+  <div class="samphus-info">
+    <h4 style="margin-top:0;color:#e67e22;">📝 หลักการสัมผัส</h4>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+      <div style="display:flex;align-items:center;gap:5px;"><span style="background:#e67e22;color:white;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:bold;">ส่ง</span><span>ส่งสัมผัสในบท</span></div>
+      <div style="display:flex;align-items:center;gap:5px;"><span style="background:#9b59b6;color:white;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:bold;">รับ</span><span>รับสัมผัสในบท</span></div>
+      <div style="display:flex;align-items:center;gap:5px;"><span style="background:#e91e63;color:white;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:bold;">เชื่อม</span><span>สัมผัสระหว่างบท</span></div>
+    </div>
+  </div>
+
+  <div class="top-controls">
+    <button class="verse-count-button" onclick="openVerseCountModal()">🗂️ จำนวนบท</button>
+    <button class="reset-button" onclick="resetData()">🗑️ เคลียร์กล่องข้อความ</button>
+  </div>
+
+  <div id="verses-container"></div>
+
+  <div class="result-section">
+    <div class="result-header">
+      <h3 class="result-title" id="result-title">กาพย์ยานี ๑๑ (๒ บท)</h3>
+      <div class="button-group">
+        <button class="reset-button" onclick="resetData()">🗑️ เคลียร์กล่องข้อความ</button>
+        <button class="copy-button" id="copy-button" onclick="copyToClipboard()">📋 คัดลอก</button>
+      </div>
+    </div>
+    <div class="result-content" id="result-content">
+      <div class="result-placeholder">กรุณากรอกคำในแต่ละวรรคเพื่อดูผลลัพธ์</div>
+    </div>
+  </div>
+
+  <div class="gold-button-container">
+    <a id="gold-btn-link" href="https://nonthaphathr.github.io/intharavichian11check/" target="_blank" class="gold-btn">
+      <span id="gold-btn-text">✨ ระบบตรวจทานที่แต่งเสร็จ คลิก ✨</span>
+    </a>
+  </div>
+
+  <div class="footer-counter">
+    <p>จำนวนผู้เข้าชม</p>
+    <div class="counter-container">
+      <span>👁️</span>
+      <span id="view-count" class="counter-badge">...</span>
+    </div>
+    <p style="font-size:12px;margin-top:5px;color:#95a5a6;">(Powered by CounterAPI)</p>
+  </div>
+</div>
+
+<button onclick="openLargeText()" class="floating-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+  </svg>
+  <span>มองตัวใหญ่</span>
+</button>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3 class="modal-title">⚙️ ตั้งค่าระบบ</h3>
+    <p class="modal-subtitle">ปรับแต่งโลโก้และ Favicon</p>
+    <div style="text-align:center;margin-bottom:14px;">
+      <img id="settings-logo-preview" src="https://img5.pic.in.th/file/secure-sv1/logo-vichakarngo-6.png"
+        style="max-height:80px;max-width:200px;border-radius:10px;border:2px solid #e0e7ff;" alt="preview">
+    </div>
+    <label class="form-label">🖼️ URL รูปโลโก้</label>
+    <input type="text" id="logo-url-input" class="form-input" placeholder="https://example.com/logo.png">
+    <label class="form-label">🔖 URL Favicon</label>
+    <input type="text" id="favicon-url-input" class="form-input" placeholder="https://example.com/favicon.png">
+    <label class="form-label">📌 ชื่อแอปพลิเคชัน</label>
+    <input type="text" id="app-title-input" class="form-input" placeholder="ชื่อระบบ">
+    <label class="form-label">🔗 ข้อความปุ่มล่างสุด</label>
+    <input type="text" id="gold-btn-text-input" class="form-input" placeholder="✨ ระบบตรวจทานที่แต่งเสร็จ คลิก ✨">
+    <label class="form-label">🌐 ลิงก์ปุ่มล่างสุด</label>
+    <input type="text" id="gold-btn-url-input" class="form-input" placeholder="https://...">
+    <button onclick="previewLogo()"
+      style="width:100%;padding:9px;background:#e0e7ff;color:#3730a3;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px;font-family:'Prompt','Kanit',sans-serif;">
+      👁️ ดูตัวอย่างโลโก้
+    </button>
+
+    <!-- Cloud Sync Section -->
+    <div style="border-top:1px solid #e5e7eb;margin:10px 0;padding-top:14px;">
+      <p style="font-size:13px;font-weight:700;color:#374151;margin:0 0 8px;">☁️ บันทึกการตั้งค่าบน Cloud</p>
+      <p style="font-size:11px;color:#6b7280;margin:0 0 10px;line-height:1.5;">บันทึกแล้วแชร์ลิงก์ให้ทุกคนเห็นการตั้งค่าเดียวกันในทุกอุปกรณ์</p>
+
+      <label class="form-label">🔑 Config ID (ว่างไว้ = สร้างใหม่อัตโนมัติ)</label>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input type="text" id="cloud-config-id" class="form-input" style="margin-bottom:0;flex:1;"
+          placeholder="เช่น my-school-config">
+        <button onclick="generateConfigId()"
+          style="padding:10px 14px;background:#f3f4f6;border:1.5px solid #d1d5db;border-radius:10px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:'Prompt','Kanit',sans-serif;color:#374151;">
+          🎲 สุ่ม
+        </button>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <button onclick="saveToCloud()" id="cloud-save-btn"
+          style="flex:1;padding:10px;background:#10b981;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Prompt','Kanit',sans-serif;transition:all 0.2s;">
+          ☁️ บันทึกขึ้น Cloud
+        </button>
+        <button onclick="copyCloudLink()" id="cloud-copy-btn"
+          style="flex:1;padding:10px;background:#6366f1;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Prompt','Kanit',sans-serif;transition:all 0.2s;">
+          📋 คัดลอกลิงก์
+        </button>
+      </div>
+      <div id="cloud-status" style="font-size:12px;color:#6b7280;text-align:center;min-height:18px;"></div>
+    </div>
+
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-btn-cancel" onclick="closeSettings()">ยกเลิก</button>
+      <button class="modal-btn modal-btn-primary" onclick="saveSettings()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Verse Count Modal -->
+<div id="verseCountModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3 class="modal-title">🗂️ ตั้งจำนวนบท</h3>
+    <p class="modal-subtitle">เลือกจำนวนบท (๑ บท = ๔ วรรค) · สัมผัสคำนวณอัตโนมัติ</p>
+    <div class="count-controls">
+      <button class="count-btn" onclick="adjustCount(-1)">−</button>
+      <div class="count-number" id="count-display">2</div>
+      <button class="count-btn" onclick="adjustCount(1)">+</button>
+    </div>
+    <div style="text-align:center;font-size:13px;color:#64748b;margin-bottom:4px;">ขั้นต่ำ 1 บท · สูงสุด 10 บท</div>
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-btn-cancel" onclick="closeVerseCountModal()">ยกเลิก</button>
+      <button class="modal-btn modal-btn-primary" onclick="applyVerseCount()">✅ ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<!-- Feedback Modal REMOVED — replaced by large-text modal -->
+
+<!-- Large Text Modal -->
+<div id="largeTextModal" class="largetext-overlay">
+  <button class="largetext-close" onclick="closeLargeText()">✕</button>
+  <div class="largetext-content" id="largetext-content">
+    <p style="color:rgba(255,255,255,0.4);font-size:1.2rem;">ยังไม่มีข้อความ กรุณากรอกคำในวรรค</p>
+  </div>
+  <div class="largetext-size-controls">
+    <button class="size-btn" onclick="changeFontSize(-4)">A−</button>
+    <span class="size-label" id="size-label">ขนาด 48px</span>
+    <button class="size-btn" onclick="changeFontSize(4)">A+</button>
+  </div>
+</div>
+
+<script>
+// ===== CONFIG =====
+const STORAGE_KEY  = 'kaph_yani_11_data_v1';
+const SETTINGS_KEY = 'kaph_yani_11_settings_v1';
+
+// ===== FIREBASE INIT =====
+const firebaseConfig = {
+  apiKey: "AIzaSyAxNPeFnekCqh330jETX4T7-ZZqsmxJTzw",
+  authDomain: "yani11.firebaseapp.com",
+  projectId: "yani11",
+  storageBucket: "yani11.firebasestorage.app",
+  messagingSenderId: "932353767237",
+  appId: "1:932353767237:web:7a47c575ea9f03ff58f02c"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let totalStanzas = 2;
+let pendingCount  = 2;
+let largeTextFontSize = 48;
+
+// verse global ID: บท s, วรรค v (1-4) => (s-1)*4 + v
+function vid(s, v) { return (s - 1) * 4 + v; }
+
+// ===== SAMPHUS LOGIC (ported from original) =====
+function removeKaran(word) {
+  let r = word;
+  while (r.includes('์')) {
+    const i = r.indexOf('์');
+    r = i > 0 ? r.substring(0, i - 1) + r.substring(i + 1) : r.substring(1);
+  }
+  return r;
+}
+function processLeadingConsonants(word) {
+  if (word.length >= 2 && word.charAt(0) === 'ห' && 'งยญรนลมว'.includes(word.charAt(1)))
+    return word.substring(1);
+  return word;
+}
+function hasAiVowel(word) {
+  if (word.includes('ไ') || word.includes('ใ') || word.includes('ัย')) return true;
+  return ['วัย','ชัย','ภัย','ไทย','อัย','ขัย','นัย','ลัย','สัย'].some(w => word === w || word.endsWith(w));
+}
+function getFinalConsonantGroup(word) {
+  if (hasAiVowel(word)) return 'เกย';
+  const map = {'ก':'กก','ข':'กก','ค':'กก','ฆ':'กก','จ':'กด','ช':'กด','ซ':'กด','ด':'กด','ต':'กด','ถ':'กด','ท':'กด','ธ':'กด','ศ':'กด','ษ':'กด','ส':'กด','ฏ':'กด','ฐ':'กด','ฑ':'กด','ฒ':'กด','ฌ':'กด','บ':'กบ','ป':'กบ','พ':'กบ','ฟ':'กบ','ภ':'กบ','น':'กน','ณ':'กน','ร':'กน','ล':'กน','ฬ':'กน','ญ':'กน','ม':'กม','ง':'กง','ย':'เกย','ว':'เกอว'};
+  return map[word.charAt(word.length - 1)] || 'กกา';
+}
+function getVowelSound(word) {
+  if (!word) return '';
+  let w = processLeadingConsonants(removeKaran(word.replace(/[่้๊๋]/g, '')));
+  if (hasAiVowel(w)) return 'ไอ';
+  if (/รรม/.test(w)) return 'อำ';
+  if (/รร/.test(w))  return 'อะ';
+  if (w.includes('ำ'))  return 'อำ';
+  if (w.includes('เ') && w.includes('ีย')) return 'เอีย';
+  if (w.includes('เ') && w.includes('ือ')) return 'เอือ';
+  if (w.includes('ัว')) return 'อัว';
+  if (w.includes('เ') && w.includes('อ') && !w.includes('า')) return 'เออ';
+  if (w.includes('เ') && w.includes('า')) return 'เอา';
+  if (w.includes('แ')) return 'แอ';
+  if (w.includes('โ')) return 'โอ';
+  if (w.includes('ื')) return 'อื';
+  if (w.includes('ู')) return 'อู';
+  if (w.includes('ี')) return 'อี';
+  if (w.includes('า')) return 'อา';
+  if (w.includes('ึ')) return 'อึ';
+  if (w.includes('ุ')) return 'อุ';
+  if (w.includes('ิ')) return 'อิ';
+  if (w.includes('เ') && !w.includes('ะ')) return 'เอ';
+  if (w.includes('ะ') || w.includes('ั')) return 'อะ';
+  return 'อะ';
+}
+function getVowelAndFinalSound(word) {
+  if (!word) return { vowel: '', finalGroup: '' };
+  let w = processLeadingConsonants(removeKaran(word.replace(/[่้๊๋]/g, '')));
+  if (/รร[ถตษสศดจชฎฏฐฑฒทธ]$/.test(w)) return { vowel: 'อะ', finalGroup: 'กด' };
+  if (/รร[คกขฆ]$/.test(w)) return { vowel: 'อะ', finalGroup: 'กก' };
+  if (/รร[พภบปฟ]$/.test(w)) return { vowel: 'อะ', finalGroup: 'กบ' };
+  if (w.endsWith('รรม')) return { vowel: 'อำ', finalGroup: 'กกา' };
+  if (/รร/.test(w)) return { vowel: 'อะ', finalGroup: 'กน' };
+  return { vowel: getVowelSound(word), finalGroup: getFinalConsonantGroup(w) };
+}
+function checkSamphus(w1, w2) {
+  if (!w1 || !w2) return false;
+  w1 = w1.trim(); w2 = w2.trim();
+  if (!w1 || !w2) return false;
+  const s1 = getVowelAndFinalSound(w1), s2 = getVowelAndFinalSound(w2);
+  return s1.vowel === s2.vowel && s1.finalGroup === s2.finalGroup && s1.vowel !== '' && s1.finalGroup !== '';
+}
+function isHomophone(w1, w2) {
+  if (!checkSamphus(w1, w2)) return false;
+  const c1 = w1.replace(/[่้๊๋์ะัาำิีึืุูเแโใไๅ]/g,'').charAt(0);
+  const c2 = w2.replace(/[่้๊๋์ะัาำิีึืุูเแโใไๅ]/g,'').charAt(0);
+  return c1 === c2 && c1 !== '';
+}
+
+// ===== BUILD HTML =====
+// กาพย์ยานี 11 สัมผัสที่ถูกต้อง:
+//   v1p5 (send) → v2p3 (receive)          [ภายในบท]
+//   v2p6 (send) → v3p5 (receive)          [ภายในบท]
+//   v4p6 (cross) → v(s+1)2p6 (cross)     [ข้ามบท]
+//   ไม่มีสัมผัสบังคับ v3p5→v4p3
+
+function buildVersesHTML() {
+  const container = document.getElementById('verses-container');
+  container.innerHTML = '';
+
+  for (let s = 1; s <= totalStanzas; s++) {
+    // Stanza header
+    const hdr = document.createElement('div');
+    hdr.className = 'stanza-header';
+    hdr.textContent = `บทที่ ${s}`;
+    container.appendChild(hdr);
+
+    // วรรค 1 (5 คำ): p5=send
+    {
+      const samphus = [{ pos: 5, type: 'send', label: 'ส่ง' }];
+      container.appendChild(buildVerse(vid(s,1), 'วรรคที่ 1 (5 คำ)', 5, samphus));
+    }
+    // วรรค 2 (6 คำ): p3=receive (จาก v1p5), p6=send (ไป v3p5) + cross-receive ถ้า s>1
+    {
+      const samphus = [{ pos: 3, type: 'receive', label: 'รับ' }];
+      if (s > 1) {
+        // p6 รับจากบทก่อน (cross) และยังส่งต่อไป v3p5 ด้วย — แสดงเป็น cross ก่อน
+        samphus.push({ pos: 6, type: 'cross', label: 'รับบท+ส่ง' });
+      } else {
+        samphus.push({ pos: 6, type: 'send', label: 'ส่ง' });
+      }
+      container.appendChild(buildVerse(vid(s,2), 'วรรคที่ 2 (6 คำ)', 6, samphus));
+    }
+    // วรรค 3 (5 คำ): p5=receive (จาก v2p6) เท่านั้น ไม่ส่งต่อ
+    {
+      const samphus = [{ pos: 5, type: 'receive', label: 'รับ' }];
+      container.appendChild(buildVerse(vid(s,3), 'วรรคที่ 3 (5 คำ)', 5, samphus));
+    }
+    // วรรค 4 (6 คำ): p6=cross ถ้าไม่ใช่บทสุดท้าย (ไม่มี receive ที่ p3)
+    {
+      const samphus = [];
+      if (s < totalStanzas) samphus.push({ pos: 6, type: 'cross', label: 'ส่งบท' });
+      container.appendChild(buildVerse(vid(s,4), 'วรรคที่ 4 (6 คำ)', 6, samphus));
+    }
+  }
+
+  document.querySelectorAll('.word-input').forEach(input => {
+    input.addEventListener('input', function () {
+      updateVerseFeedback(this.dataset.verse);
+      updateResult();
+      checkAllSamphus();
+      saveData();
+    });
+  });
+}
+
+function buildVerse(verseNum, title, wordCount, samphusConfig) {
+  const section = document.createElement('div');
+  section.className = 'verse-section';
+
+  let patternHTML = '';
+  for (let i = 1; i <= wordCount; i++) {
+    const sc = samphusConfig.find(s => s.pos === i);
+    let cls = 'syllable';
+    if (sc) {
+      if (sc.type === 'send')    cls += ' samphus-send';
+      if (sc.type === 'receive') cls += ' samphus-receive';
+      if (sc.type === 'cross')   cls += ' samphus-cross';
+    }
+    patternHTML += `<span class="${cls}">${sc ? sc.label : i}</span> `;
+  }
+
+  let wordsHTML = '';
+  for (let i = 1; i <= wordCount; i++) {
+    const sc = samphusConfig.find(s => s.pos === i);
+    let inputCls = 'word-input';
+    let indicator = '';
+    if (sc) {
+      if (sc.type === 'send')    { inputCls += ' samphus-send';    indicator = `<span class="samphus-indicator samphus-send-indicator">ส่ง</span>`; }
+      if (sc.type === 'receive') { inputCls += ' samphus-receive'; indicator = `<span class="samphus-indicator samphus-receive-indicator">รับ</span>`; }
+      if (sc.type === 'cross')   { inputCls += ' samphus-cross';   indicator = `<span class="samphus-indicator samphus-cross-indicator">${sc.label}</span>`; }
+    }
+    const ph = sc ? (sc.label === 'ส่งบท' ? 'ท้ายบท' : sc.label === 'รับบท' ? 'รับบท' : `คำที่ ${i}`) : `คำที่ ${i}`;
+    wordsHTML += `
+      <div class="word-group">
+        <input type="text" class="${inputCls}"
+          data-verse="${verseNum}" data-position="${i}"
+          data-samphus="${sc ? sc.type : 'none'}" placeholder="${ph}">
+        <span class="word-label">คำที่ ${i}</span>
+        ${indicator}
+      </div>`;
+  }
+
+  section.innerHTML = `
+    <div class="verse-header">
+      <span class="verse-title">${title}</span>
+      <div class="pattern-display">${patternHTML}</div>
+    </div>
+    <div class="word-inputs">${wordsHTML}</div>
+    <div class="verse-feedback" id="verse${verseNum}-feedback"></div>`;
+  return section;
+}
+
+// ===== VERSE FEEDBACK =====
+function updateVerseFeedback(verseNumber) {
+  const fb = document.getElementById(`verse${verseNumber}-feedback`);
+  if (!fb) return;
+  const inputs = document.querySelectorAll(`[data-verse="${verseNumber}"]`);
+  let filled = 0;
+  inputs.forEach(inp => { if (inp.value.trim()) filled++; });
+  const total = inputs.length;
+  if (filled === 0) {
+    fb.textContent = `กรุณากรอกคำในวรรคที่ ${verseNumber}`;
+    fb.style.cssText = '';
+  } else if (filled === total) {
+    fb.textContent = `✅ วรรคที่ ${verseNumber} กรอกครบ ${total} คำแล้ว`;
+    fb.style.backgroundColor = '#d4edda'; fb.style.borderColor = '#c3e6cb'; fb.style.color = '#155724';
+  } else {
+    fb.textContent = `กรอกแล้ว ${filled}/${total} คำ`;
+    fb.style.cssText = '';
+  }
+}
+
+// ===== SAMPHUS CHECK =====
+function checkAllSamphus() {
+  document.querySelectorAll('.samphus-feedback').forEach(el => el.remove());
+
+  for (let s = 1; s <= totalStanzas; s++) {
+    // ภายในบท: v1p5→v2p3, v2p6→v3p5
+    addSamphusCheck({ verse: vid(s,1), position: 5 }, { verse: vid(s,2), position: 3 }, 'internal');
+    addSamphusCheck({ verse: vid(s,2), position: 6 }, { verse: vid(s,3), position: 5 }, 'internal');
+    // ข้ามบท: v4p6 → v(s+1)2p6
+    if (s < totalStanzas) {
+      addSamphusCheck({ verse: vid(s,4), position: 6 }, { verse: vid(s+1,2), position: 6 }, 'cross');
+    }
+  }
+  checkVowelOveruse();
+}
+
+function addSamphusCheck(send, receive, type) {
+  const sInp = document.querySelector(`[data-verse="${send.verse}"][data-position="${send.position}"]`);
+  const rInp = document.querySelector(`[data-verse="${receive.verse}"][data-position="${receive.position}"]`);
+  if (!sInp || !rInp) return;
+  const sw = sInp.value.trim(), rw = rInp.value.trim();
+  const connText = type === 'cross' ? ' (ข้ามบท)' : '';
+
+  const mkFb = (msg, cls) => { const el = document.createElement('div'); el.className = `samphus-feedback ${cls}`; el.textContent = msg; return el; };
+
+  if (sw && rw) {
+    const ok = checkSamphus(sw, rw), same = sw === rw, homo = !same && isHomophone(sw, rw);
+    if (ok && (same || homo)) {
+      const warn = same ? 'คำซ้ำ' : 'เสียงพ้อง';
+      sInp.parentElement.appendChild(mkFb(`⚠️ โปรดระวัง "สัมผัสซ้ำ" (${warn}) กับ "${rw}"`, 'samphus-warning'));
+      rInp.parentElement.appendChild(mkFb(`⚠️ โปรดระวัง "สัมผัสซ้ำ" (${warn}) กับ "${sw}"`, 'samphus-warning'));
+    } else if (ok) {
+      sInp.parentElement.appendChild(mkFb(`✅ สัมผัสกับ "${rw}"${connText}`, 'samphus-correct'));
+      rInp.parentElement.appendChild(mkFb(`✅ สัมผัสกับ "${sw}"${connText}`, 'samphus-correct'));
+    } else {
+      sInp.parentElement.appendChild(mkFb(`❌ ไม่สัมผัสกับ "${rw}"${connText}`, 'samphus-incorrect'));
+      rInp.parentElement.appendChild(mkFb(`❌ ไม่สัมผัสกับ "${sw}"${connText}`, 'samphus-incorrect'));
+    }
+  } else if (sw || rw) {
+    const pend = mkFb('⏳ รอคำคู่สัมผัส', 'samphus-pending');
+    if (sw) sInp.parentElement.appendChild(pend.cloneNode(true));
+    if (rw) rInp.parentElement.appendChild(pend.cloneNode(true));
+  }
+}
+
+function checkVowelOveruse() {
+  document.querySelectorAll('.vowel-overuse-feedback').forEach(el => el.remove());
+  for (let s = 1; s <= totalStanzas; s++) {
+    // ตรวจสัมผัสหลัก 3 จุดในบท: v1p5, v2p3, v3p5
+    const positions = [
+      { verse: vid(s,1), position: 5 },
+      { verse: vid(s,2), position: 3 },
+      { verse: vid(s,3), position: 5 }
+    ];
+    const words = positions.map(p => {
+      const inp = document.querySelector(`[data-verse="${p.verse}"][data-position="${p.position}"]`);
+      return inp ? inp.value.trim() : '';
+    });
+    if (words[0] && words[1] && words[2]) {
+      const v1 = getVowelSound(words[0]), v2 = getVowelSound(words[1]), v3 = getVowelSound(words[2]);
+      if (v1 === v2 && v2 === v3 && v1 !== '') {
+        const inp = document.querySelector(`[data-verse="${positions[2].verse}"][data-position="${positions[2].position}"]`);
+        if (inp) {
+          const el = document.createElement('div');
+          el.className = 'samphus-feedback vowel-overuse-feedback';
+          el.textContent = `⚠️ สระท้ายวรรคเสียงเดียวกันมากไป (${v1}) กับวรรคก่อนหน้า`;
+          inp.parentElement.appendChild(el);
+        }
+      }
+    }
+  }
+}
+
+// ===== RESULT =====
+function updateResult() {
+  const rc = document.getElementById('result-content');
+  let html = '', any = false;
+  for (let s = 1; s <= totalStanzas; s++) {
+    let sHTML = '', sAny = false;
+    for (let v = 1; v <= 4; v++) {
+      const inputs = document.querySelectorAll(`[data-verse="${vid(s,v)}"]`);
+      const words = [];
+      inputs.forEach(inp => { const w = inp.value.trim(); if (w) words.push(w); });
+      if (words.length) { sHTML += `<div class="result-verse"><div class="verse-line">${words.join('')}</div></div>`; sAny = any = true; }
+    }
+    if (sAny) html += `<div class="${s < totalStanzas ? 'result-stanza-gap' : ''}">${sHTML}</div>`;
+  }
+  rc.innerHTML = any ? html : '<div class="result-placeholder">กรุณากรอกคำในแต่ละวรรคเพื่อดูผลลัพธ์</div>';
+}
+
+// ===== COPY =====
+function copyToClipboard() {
+  const btn = document.getElementById('copy-button');
+  const lines = [];
+  for (let s = 1; s <= totalStanzas; s++) {
+    for (let v = 1; v <= 4; v++) {
+      const inputs = document.querySelectorAll(`[data-verse="${vid(s,v)}"]`);
+      const words = [];
+      inputs.forEach(inp => { const w = inp.value.trim(); if (w) words.push(w); });
+      if (words.length) lines.push(words.join(''));
+    }
+    if (s < totalStanzas) lines.push('');
+  }
+  if (!lines.filter(l => l).length) { alert('กรุณากรอกคำก่อนคัดลอก'); return; }
+  const text = lines.join('\n');
+  new Audio('https://nonthaphathr.github.io/uploadimg/copychunt.mp3').play().catch(() => {});
+  confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ คัดลอกแล้ว'; btn.classList.add('copied');
+    setTimeout(() => { btn.innerHTML = '📋 คัดลอก'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea'); ta.value = text;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = '✅ คัดลอกแล้ว';
+    setTimeout(() => { btn.innerHTML = '📋 คัดลอก'; }, 2000);
+  });
+}
+
+// ===== SAVE / LOAD =====
+function saveData() {
+  const data = {};
+  document.querySelectorAll('.word-input').forEach(inp => { data[`v${inp.dataset.verse}_p${inp.dataset.position}`] = inp.value; });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ stanzas: totalStanzas, words: data }));
+}
+function loadData() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const saved = JSON.parse(raw);
+    if (saved.stanzas && saved.stanzas !== totalStanzas) {
+      totalStanzas = saved.stanzas; buildVersesHTML(); updateTitles();
+    }
+    const data = saved.words || {};
+    document.querySelectorAll('.word-input').forEach(inp => {
+      const key = `v${inp.dataset.verse}_p${inp.dataset.position}`;
+      if (data[key]) { inp.value = data[key]; updateVerseFeedback(inp.dataset.verse); }
+    });
+    updateResult(); checkAllSamphus();
+  } catch(e) {}
+}
+function resetData() {
+  if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมด? การกระทำนี้ไม่สามารถย้อนกลับได้')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  document.querySelectorAll('.word-input').forEach(inp => { inp.value = ''; });
+  document.querySelectorAll('.verse-feedback').forEach(fb => { fb.textContent = ''; fb.style.cssText = ''; });
+  updateResult(); checkAllSamphus();
+}
+
+// ===== VERSE COUNT =====
+function updateTitles() {
+  document.getElementById('app-title').textContent = `เครื่องมือช่วยแต่งกาพย์ยานี ๑๑ (${totalStanzas} บท)`;
+  document.getElementById('result-title').textContent = `กาพย์ยานี ๑๑ (${totalStanzas} บท)`;
+}
+function openVerseCountModal() {
+  pendingCount = totalStanzas;
+  document.getElementById('count-display').textContent = pendingCount;
+  document.getElementById('verseCountModal').classList.add('active');
+}
+function closeVerseCountModal() { document.getElementById('verseCountModal').classList.remove('active'); }
+function adjustCount(d) {
+  pendingCount = Math.max(1, Math.min(10, pendingCount + d));
+  document.getElementById('count-display').textContent = pendingCount;
+}
+function applyVerseCount() {
+  if (pendingCount !== totalStanzas) {
+    const oldData = {};
+    document.querySelectorAll('.word-input').forEach(inp => { oldData[`v${inp.dataset.verse}_p${inp.dataset.position}`] = inp.value; });
+    totalStanzas = pendingCount; buildVersesHTML(); updateTitles();
+    document.querySelectorAll('.word-input').forEach(inp => {
+      const key = `v${inp.dataset.verse}_p${inp.dataset.position}`;
+      if (oldData[key]) { inp.value = oldData[key]; updateVerseFeedback(inp.dataset.verse); }
+    });
+    updateResult(); checkAllSamphus(); saveData();
+  }
+  closeVerseCountModal();
+}
+
+// ===== SETTINGS =====
+function openSettings() { document.getElementById('settingsModal').classList.add('active'); }
+function closeSettings() { document.getElementById('settingsModal').classList.remove('active'); }
+function previewLogo() {
+  const url = document.getElementById('logo-url-input').value.trim();
+  if (url) document.getElementById('settings-logo-preview').src = url;
+}
+
+function _collectSettingsObj() {
+  return {
+    logoUrl:    document.getElementById('logo-url-input').value.trim(),
+    faviconUrl: document.getElementById('favicon-url-input').value.trim(),
+    appTitle:   document.getElementById('app-title-input').value.trim(),
+    goldText:   document.getElementById('gold-btn-text-input').value.trim(),
+    goldUrl:    document.getElementById('gold-btn-url-input').value.trim()
+  };
+}
+
+function _applySettings(s) {
+  if (s.logoUrl)    { const img = document.getElementById('logo-img'); img.src = s.logoUrl; img.style.display = ''; document.getElementById('settings-logo-preview').src = s.logoUrl; document.getElementById('logo-url-input').value = s.logoUrl; }
+  if (s.faviconUrl) { document.getElementById('favicon-link').href = s.faviconUrl; document.getElementById('favicon-url-input').value = s.faviconUrl; }
+  if (s.appTitle)   { document.getElementById('app-title').textContent = s.appTitle; document.getElementById('result-title').textContent = s.appTitle; document.getElementById('app-title-input').value = s.appTitle; document.title = s.appTitle; }
+  if (s.goldText)   { document.getElementById('gold-btn-text').textContent = s.goldText; document.getElementById('gold-btn-text-input').value = s.goldText; }
+  if (s.goldUrl)    { document.getElementById('gold-btn-link').href = s.goldUrl; document.getElementById('gold-btn-url-input').value = s.goldUrl; }
+}
+
+function saveSettings() {
+  const s = _collectSettingsObj();
+  _applySettings(s);
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  closeSettings();
+}
+
+function loadSettings() {
+  const raw = localStorage.getItem(SETTINGS_KEY);
+  if (!raw) return;
+  try { _applySettings(JSON.parse(raw)); } catch(e) {}
+}
+
+// ===== CLOUD SYNC (Firestore) =====
+function generateConfigId() {
+  const id = Math.random().toString(36).substring(2, 10);
+  document.getElementById('cloud-config-id').value = id;
+}
+
+async function saveToCloud() {
+  let configId = document.getElementById('cloud-config-id').value.trim();
+  if (!configId) { generateConfigId(); configId = document.getElementById('cloud-config-id').value; }
+
+  const btn = document.getElementById('cloud-save-btn');
+  const status = document.getElementById('cloud-status');
+  btn.textContent = '⏳ กำลังบันทึก...'; btn.disabled = true;
+  status.textContent = '';
+
+  const settingsObj = _collectSettingsObj();
+  settingsObj.updatedAt = new Date().toISOString();
+
+  try {
+    await db.collection('configs').doc(configId).set(settingsObj);
+    localStorage.setItem('kaph_yani_cloud_id', configId);
+    status.style.color = '#10b981';
+    status.textContent = `✅ บันทึกแล้ว! Config ID: ${configId}`;
+    btn.textContent = '✅ บันทึกแล้ว!';
+    setTimeout(() => { btn.textContent = '☁️ บันทึกขึ้น Cloud'; btn.disabled = false; }, 2500);
+  } catch(e) {
+    status.style.color = '#ef4444';
+    status.textContent = `❌ ผิดพลาด: ${e.message}`;
+    btn.textContent = '☁️ บันทึกขึ้น Cloud'; btn.disabled = false;
+  }
+}
+
+async function loadFromCloud(configId) {
+  try {
+    const doc = await db.collection('configs').doc(configId).get();
+    if (doc.exists) {
+      const data = doc.data();
+      _applySettings(data);
+      document.getElementById('cloud-config-id').value = configId;
+      localStorage.setItem('kaph_yani_cloud_id', configId);
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
+      return true;
+    }
+    return false;
+  } catch(e) {
+    console.warn('Cloud load error:', e);
+    return false;
+  }
+}
+
+function copyCloudLink() {
+  const configId = document.getElementById('cloud-config-id').value.trim() || localStorage.getItem('kaph_yani_cloud_id') || '';
+  if (!configId) { alert('กรุณาบันทึก Config ขึ้น Cloud ก่อน'); return; }
+  const url = `${location.origin}${location.pathname}?config=${configId}`;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('cloud-copy-btn');
+    btn.textContent = '✅ คัดลอกแล้ว!';
+    document.getElementById('cloud-status').style.color = '#6366f1';
+    document.getElementById('cloud-status').textContent = url;
+    setTimeout(() => { btn.textContent = '📋 คัดลอกลิงก์'; }, 2000);
+  }).catch(() => alert('ไม่สามารถคัดลอกได้ โปรดคัดลอกด้วยตนเอง: ' + url));
+}
+
+// ===== LARGE TEXT VIEW =====
+function openLargeText() {
+  const content = document.getElementById('largetext-content');
+  let html = '', any = false;
+  for (let s = 1; s <= totalStanzas; s++) {
+    let sHTML = '', sAny = false;
+    for (let v = 1; v <= 4; v++) {
+      const inputs = document.querySelectorAll(`[data-verse="${vid(s,v)}"]`);
+      const words = [];
+      inputs.forEach(inp => { const w = inp.value.trim(); if (w) words.push(w); });
+      if (words.length) {
+        sHTML += `<div class="largetext-verse">${words.join('')}</div>`;
+        sAny = any = true;
+      }
+    }
+    if (sAny) html += `<div class="${s < totalStanzas ? 'largetext-gap' : ''}">${sHTML}</div>`;
+  }
+  content.innerHTML = any
+    ? html
+    : '<p style="color:rgba(255,255,255,0.35);font-size:1.2rem;">ยังไม่มีข้อความ กรุณากรอกคำในวรรค</p>';
+  content.style.fontSize = largeTextFontSize + 'px';
+  document.getElementById('size-label').textContent = `ขนาด ${largeTextFontSize}px`;
+  document.getElementById('largeTextModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLargeText() {
+  document.getElementById('largeTextModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function changeFontSize(delta) {
+  largeTextFontSize = Math.max(20, Math.min(120, largeTextFontSize + delta));
+  document.getElementById('largetext-content').style.fontSize = largeTextFontSize + 'px';
+  document.getElementById('size-label').textContent = `ขนาด ${largeTextFontSize}px`;
+}
+
+// Close large-text on backdrop click
+document.getElementById('largeTextModal').addEventListener('click', function(e) {
+  if (e.target === this) closeLargeText();
+});
+
+// Close modal on backdrop click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); });
+});
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', async () => {
+  // Check URL for cloud config param first
+  const urlParams = new URLSearchParams(location.search);
+  const cloudConfigId = urlParams.get('config');
+
+  if (cloudConfigId) {
+    // Load from cloud, show loading indicator
+    const titleEl = document.getElementById('app-title');
+    const origTitle = titleEl.textContent;
+    titleEl.textContent = '⏳ กำลังโหลดการตั้งค่า...';
+    const loaded = await loadFromCloud(cloudConfigId);
+    if (!loaded) { titleEl.textContent = origTitle; }
+  } else {
+    // Restore saved cloud ID into field if exists
+    const savedId = localStorage.getItem('kaph_yani_cloud_id');
+    if (savedId) document.getElementById('cloud-config-id').value = savedId;
+    loadSettings();
+  }
+
+  buildVersesHTML();
+  loadData();
+
+  fetch('https://api.counterapi.dev/v1/kaph-yani-tool/visits/up')
+    .then(r => r.json())
+    .then(d => { document.getElementById('view-count').textContent = d.count; })
+    .catch(() => { document.getElementById('view-count').textContent = '—'; });
+});
+</script>
+</body>
+</html>
