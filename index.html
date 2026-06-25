@@ -318,7 +318,10 @@
       background: white; border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.2);
       width: 100%; max-width: 440px; padding: 28px;
       animation: fadeInUp 0.35s ease-out;
+      max-height: 90vh; overflow-y: auto;
     }
+    .modal-box::-webkit-scrollbar { width: 6px; }
+    .modal-box::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 6px; }
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(30px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -378,6 +381,26 @@
     .form-input  { width: 100%; padding: 10px 14px; border: 1.5px solid #d1d5db; border-radius: 10px; font-size: 14px; font-family: 'Prompt','Kanit',sans-serif; transition: all 0.2s; margin-bottom: 12px; box-sizing: border-box; }
     .form-input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
 
+    /* Toggle switch */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; background: #f8fafc; border: 1.5px solid #e2e8f0;
+      border-radius: 10px; margin-bottom: 12px;
+    }
+    .toggle-row .toggle-label { font-size: 13px; font-weight: 600; color: #374151; }
+    .toggle-switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; cursor: pointer; background: #cbd5e0;
+      border-radius: 26px; transition: 0.3s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px;
+      background: white; border-radius: 50%; transition: 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle-switch input:checked + .toggle-slider { background: #10b981; }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
     .star-inactive { color: #e2e8f0; cursor: pointer; }
     .star-active   { color: #fbbf24; cursor: pointer; }
 
@@ -390,7 +413,7 @@
     .count-btn:hover { background: #6366f1; color: white; }
     .count-number { font-size: 36px; font-weight: 700; color: #1e293b; min-width: 60px; text-align: center; }
 
-    .modal-btn-row { display: flex; gap: 10px; margin-top: 16px; }
+    .modal-btn-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
     .modal-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Prompt','Kanit',sans-serif; transition: all 0.2s; }
     .modal-btn-cancel  { background: #f1f5f9; color: #475569; }
     .modal-btn-cancel:hover { background: #e2e8f0; }
@@ -506,6 +529,7 @@
       <h3 class="result-title" id="result-title">กาพย์ยานี ๑๑ (๒ บท)</h3>
       <div class="button-group">
         <button class="reset-button" onclick="resetData()">🗑️ เคลียร์กล่องข้อความ</button>
+        <button class="copy-button" style="background:#16a34a;" onclick="openSaveImageModal()">🖼️ บันทึกเป็นภาพส่งครู</button>
         <button class="copy-button" id="copy-button" onclick="copyToClipboard()">📋 คัดลอก</button>
       </div>
     </div>
@@ -556,7 +580,13 @@
     <input type="text" id="gold-btn-text-input" class="form-input" placeholder="✨ ระบบตรวจทานที่แต่งเสร็จ คลิก ✨">
     <label class="form-label">🌐 ลิงก์ปุ่มล่างสุด</label>
     <input type="text" id="gold-btn-url-input" class="form-input" placeholder="https://...">
-    <button onclick="previewLogo()"
+    <div class="toggle-row">
+      <span class="toggle-label">👁️ แสดงปุ่มลิงก์ล่างสุด</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="gold-btn-visible-input" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>    <button onclick="previewLogo()"
       style="width:100%;padding:9px;background:#e0e7ff;color:#3730a3;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px;font-family:'Prompt','Kanit',sans-serif;">
       👁️ ดูตัวอย่างโลโก้
     </button>
@@ -639,6 +669,34 @@
     <div class="modal-btn-row" style="margin-top:14px;">
       <button class="modal-btn modal-btn-cancel" onclick="closeQrModal()">ปิด</button>
       <button class="modal-btn modal-btn-primary" onclick="copyQrLink()">📋 คัดลอกลิงก์</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SAVE IMAGE MODAL ===== -->
+<div id="saveImageModal" class="modal-overlay">
+  <div class="mini-modal-box">
+    <p class="mini-modal-title">🖼️ บันทึกเป็นภาพส่งครู</p>
+    <p class="mini-modal-body" style="margin-bottom:14px;">กรอกข้อมูลผู้แต่ง (ไม่บังคับทุกช่อง) แล้วระบบจะสร้างภาพบทประพันธ์ให้ดาวน์โหลด</p>
+    <label class="form-label">📖 หัวข้อเรื่อง (ไม่บังคับ)</label>
+    <input type="text" id="si-topic" class="form-input" placeholder="เช่น ความงามของธรรมชาติ">
+    <label class="form-label">👤 ชื่อ-สกุล (ไม่บังคับ)</label>
+    <input type="text" id="si-name" class="form-input" placeholder="เช่น เด็กชายสมชาย ใจดี">
+    <div style="display:flex;gap:8px;">
+      <div style="flex:1;">
+        <label class="form-label">🏫 ชั้น (ไม่บังคับ)</label>
+        <input type="text" id="si-class" class="form-input" placeholder="เช่น ม.๓/๑">
+      </div>
+      <div style="flex:1;">
+        <label class="form-label">🔢 เลขที่ (ไม่บังคับ)</label>
+        <input type="text" id="si-number" class="form-input" placeholder="เช่น ๑๒">
+      </div>
+    </div>
+    <div id="si-status" style="font-size:12px;color:#6b7280;text-align:center;min-height:18px;margin-bottom:4px;"></div>
+    <button class="modal-btn" style="width:100%;background:#7c3aed;color:white;margin-bottom:8px;" id="si-save-color-btn" onclick="saveCompositionImage(true)">🎨 บันทึกพร้อมแสดงสีจุดสัมผัส</button>
+    <div class="modal-btn-row" style="margin-top:0;">
+      <button class="modal-btn modal-btn-cancel" onclick="closeSaveImageModal()">ยกเลิก</button>
+      <button class="modal-btn modal-btn-primary" style="background:#16a34a;" id="si-save-btn" onclick="saveCompositionImage(false)">📥 บันทึกภาพ (ไม่ลงสี)</button>
     </div>
   </div>
 </div>
@@ -1185,7 +1243,6 @@ function copyToClipboard() {
   }
   if (!lines.filter(l => l).length) { alert('กรุณากรอกคำก่อนคัดลอก'); return; }
   const text = lines.join('\n');
-  new Audio('https://nonthaphathr.github.io/uploadimg/copychunt.mp3').play().catch(() => {});
   confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
   navigator.clipboard.writeText(text).then(() => {
     btn.textContent = '✅ คัดลอกแล้ว'; btn.classList.add('copied');
@@ -1271,7 +1328,8 @@ function _collectSettingsObj() {
     faviconUrl: document.getElementById('favicon-url-input').value.trim(),
     appTitle:   document.getElementById('app-title-input').value.trim(),
     goldText:   document.getElementById('gold-btn-text-input').value.trim(),
-    goldUrl:    document.getElementById('gold-btn-url-input').value.trim()
+    goldUrl:    document.getElementById('gold-btn-url-input').value.trim(),
+    goldVisible: document.getElementById('gold-btn-visible-input').checked
   };
 }
 
@@ -1281,6 +1339,10 @@ function _applySettings(s) {
   if (s.appTitle)   { document.getElementById('app-title').textContent = s.appTitle; document.getElementById('result-title').textContent = s.appTitle; document.getElementById('app-title-input').value = s.appTitle; document.title = s.appTitle; }
   if (s.goldText)   { document.getElementById('gold-btn-text').textContent = s.goldText; document.getElementById('gold-btn-text-input').value = s.goldText; }
   if (s.goldUrl)    { document.getElementById('gold-btn-link').href = s.goldUrl; document.getElementById('gold-btn-url-input').value = s.goldUrl; }
+  // ค่าเดิมที่ไม่มี field goldVisible ให้ถือว่าแสดง (true)
+  const goldVisible = (s.goldVisible !== false);
+  document.getElementById('gold-btn-visible-input').checked = goldVisible;
+  document.querySelector('.gold-button-container').style.display = goldVisible ? '' : 'none';
 }
 
 function saveSettings() {
@@ -1479,6 +1541,302 @@ function copyQrLink() {
     btn.textContent = '✅ คัดลอกแล้ว!';
     setTimeout(() => { btn.innerHTML = '📋 คัดลอกลิงก์'; }, 2000);
   }).catch(() => alert(qrCurrentUrl));
+}
+
+// ===== SAVE COMPOSITION AS IMAGE =====
+function openSaveImageModal() {
+  let hasContent = false;
+  document.querySelectorAll('.word-input').forEach(inp => { if (inp.value.trim()) hasContent = true; });
+  if (!hasContent) { alert('กรุณากรอกคำในบทประพันธ์ก่อนบันทึกภาพ'); return; }
+  document.getElementById('si-status').textContent = '';
+  document.getElementById('saveImageModal').classList.add('active');
+}
+function closeSaveImageModal() {
+  document.getElementById('saveImageModal').classList.remove('active');
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); return; }
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function thaiDateString() {
+  const months = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+                  'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const d = new Date();
+  return `${d.getDate()} ${months[d.getMonth()]} พ.ศ. ${d.getFullYear() + 543}`;
+}
+
+async function saveCompositionImage(colorMode) {
+  const plainBtn = document.getElementById('si-save-btn');
+  const colorBtn = document.getElementById('si-save-color-btn');
+  const clickedBtn = colorMode ? colorBtn : plainBtn;
+  const clickedLabel = colorMode ? '🎨 บันทึกพร้อมแสดงสีจุดสัมผัส' : '📥 บันทึกภาพ (ไม่ลงสี)';
+  const status = document.getElementById('si-status');
+  const topic = document.getElementById('si-topic').value.trim();
+  const name = document.getElementById('si-name').value.trim();
+  const cls  = document.getElementById('si-class').value.trim();
+  const num  = document.getElementById('si-number').value.trim();
+
+  // สีจุดสัมผัส (ตรงกับสีในเครื่องมือ)
+  const C_SEND = '#e67e22', C_RECEIVE = '#9b59b6', C_CROSS = '#e91e63';
+  function rhymeColor(s, v, pos) {
+    if (v === 1 && pos === 5) return C_SEND;                       // ส่งในบท
+    if (v === 2 && pos === 3) return C_RECEIVE;                    // รับในบท
+    if (v === 2 && pos === 6) return (s > 1 ? C_CROSS : C_SEND);   // รับข้ามบท+ส่ง / ส่ง
+    if (v === 3 && pos === 5) return C_RECEIVE;                    // รับในบท
+    if (v === 4 && pos === 6) return (s < totalStanzas ? C_CROSS : null); // ส่งข้ามบท
+    return null;
+  }
+
+  // เก็บบทประพันธ์: 1 บท = 2 บรรทัด (วรรค1+วรรค2, วรรค3+วรรค4)
+  // แต่ละวรรคเป็น array ของ { word, color }
+  const stanzas = [];
+  for (let s = 1; s <= totalStanzas; s++) {
+    const getVerse = (v) => {
+      const inputs = document.querySelectorAll(`[data-verse="${vid(s,v)}"]`);
+      const arr = [];
+      inputs.forEach(inp => {
+        arr.push({
+          word: inp.value.trim(),
+          color: colorMode ? rhymeColor(s, v, parseInt(inp.dataset.position)) : null
+        });
+      });
+      return arr;
+    };
+    const v1 = getVerse(1), v2 = getVerse(2), v3 = getVerse(3), v4 = getVerse(4);
+    const any = [v1, v2, v3, v4].some(a => a.some(x => x.word));
+    if (any) stanzas.push([[v1, v2], [v3, v4]]);
+  }
+  if (!stanzas.length) { alert('ยังไม่มีบทประพันธ์'); return; }
+
+  plainBtn.disabled = true; colorBtn.disabled = true;
+  clickedBtn.textContent = '⏳ กำลังสร้างภาพ...';
+  status.style.color = '#6b7280'; status.textContent = '';
+
+  function restoreBtns() {
+    plainBtn.disabled = false; colorBtn.disabled = false;
+    clickedBtn.textContent = clickedLabel;
+  }
+
+  // โหลดฟอนต์ให้พร้อมก่อนวาด
+  try {
+    await Promise.all([
+      document.fonts.load('700 50px Prompt'),
+      document.fonts.load('600 40px Prompt'),
+      document.fonts.load('500 38px Prompt'),
+      document.fonts.load('400 30px Prompt')
+    ]);
+    await document.fonts.ready;
+  } catch(e) {}
+
+  // ===== Layout (logical px) =====
+  const scale = 2;
+  const W = 1100;
+  const margin = 34;          // ระยะขอบนอกถึงการ์ด
+  const cardPad = 56;         // ระยะ padding ภายในการ์ด
+  const titleBlockH = 196;
+  const lineHeight = 80;
+  const stanzaGap = 48;
+  const hasFooter = !!(name || cls || num);
+  const footerH = hasFooter ? 188 : 96;
+  const legendH = colorMode ? 64 : 0;
+
+  let bodyH = 0;
+  stanzas.forEach((rows, i) => {
+    bodyH += rows.length * lineHeight;
+    if (i < stanzas.length - 1) bodyH += stanzaGap;
+  });
+  const H = margin + cardPad + titleBlockH + bodyH + 50 + legendH + footerH + cardPad + margin;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W * scale;
+  canvas.height = H * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+
+  // พื้นหลังไล่เฉด
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#eef2fb');
+  bg.addColorStop(0.5, '#f6f0fb');
+  bg.addColorStop(1, '#e9f3fb');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // การ์ดสีขาว + เงา
+  const cardX = margin, cardY = margin, cardW = W - margin * 2, cardH = H - margin * 2;
+  ctx.save();
+  ctx.shadowColor = 'rgba(60,70,120,0.18)';
+  ctx.shadowBlur = 34;
+  ctx.shadowOffsetY = 14;
+  ctx.fillStyle = '#ffffff';
+  roundRectPath(ctx, cardX, cardY, cardW, cardH, 28);
+  ctx.fill();
+  ctx.restore();
+
+  // กรอบทองคู่
+  ctx.strokeStyle = '#d9b44a';
+  ctx.lineWidth = 3;
+  roundRectPath(ctx, cardX + 16, cardY + 16, cardW - 32, cardH - 32, 18);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(217,180,74,0.45)';
+  ctx.lineWidth = 1.5;
+  roundRectPath(ctx, cardX + 23, cardY + 23, cardW - 46, cardH - 46, 14);
+  ctx.stroke();
+
+  const centerX = W / 2;
+
+  // ===== ส่วนหัว =====
+  let y = cardY + cardPad + 18;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#b8860b';
+  ctx.font = '600 26px Prompt';
+  ctx.fillText('❖ กาพย์ยานี ๑๑ ❖', centerX, y);
+
+  y += 56;
+  // หัวเรื่องหลัก = หัวข้อเรื่อง (ถ้าไม่กรอก ใช้ "บทประพันธ์")
+  const mainTitle = topic || 'บทประพันธ์';
+  const maxTitleW = cardW - cardPad * 2 - 30;
+  let titleFont = 50;
+  ctx.font = `700 ${titleFont}px Prompt`;
+  while (ctx.measureText(mainTitle).width > maxTitleW && titleFont > 28) {
+    titleFont -= 2;
+    ctx.font = `700 ${titleFont}px Prompt`;
+  }
+  ctx.fillStyle = '#2c3e50';
+  ctx.fillText(mainTitle, centerX, y);
+
+  // เส้นคั่นประดับ
+  y += 34;
+  const uW = 220;
+  const ug = ctx.createLinearGradient(centerX - uW/2, 0, centerX + uW/2, 0);
+  ug.addColorStop(0, 'rgba(217,180,74,0)');
+  ug.addColorStop(0.5, '#d9b44a');
+  ug.addColorStop(1, 'rgba(217,180,74,0)');
+  ctx.strokeStyle = ug;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(centerX - uW/2, y); ctx.lineTo(centerX + uW/2, y); ctx.stroke();
+  ctx.fillStyle = '#d9b44a';
+  ctx.font = '400 22px Prompt';
+  ctx.fillText('✦', centerX, y - 8);
+
+  // ===== บทประพันธ์ =====
+  y = cardY + cardPad + titleBlockH;
+  const colGap = 70;             // ช่องว่างกลางสองวรรค
+  const leftAnchor  = centerX - colGap / 2;
+  const rightAnchor = centerX + colGap / 2;
+
+  // วาดวรรค (array ของ {word,color}) แบบจัดชิดซ้าย/ขวาเทียบ anchor
+  function drawVerse(words, anchorX, align) {
+    const parts = words.filter(w => w.word !== '');
+    if (!parts.length) return;
+    const joined = parts.map(w => w.word).join('');
+    const totalW = ctx.measureText(joined).width;
+    let x = (align === 'right') ? anchorX - totalW : anchorX;
+    const prevAlign = ctx.textAlign;
+    ctx.textAlign = 'left';
+    for (const p of parts) {
+      ctx.fillStyle = p.color || '#1f2937';
+      ctx.fillText(p.word, x, y);
+      x += ctx.measureText(p.word).width;
+    }
+    ctx.textAlign = prevAlign;
+  }
+
+  stanzas.forEach((rows, si) => {
+    rows.forEach(([a, b]) => {
+      ctx.font = '500 38px Prompt';
+      drawVerse(a, leftAnchor, 'right');
+      drawVerse(b, rightAnchor, 'left');
+      y += lineHeight;
+    });
+    if (si < stanzas.length - 1) y += stanzaGap;
+  });
+
+  // ===== ส่วนท้าย =====
+  y += 6;
+  const fW = cardW - cardPad * 2 - 40;
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(centerX - fW/2, y); ctx.lineTo(centerX + fW/2, y); ctx.stroke();
+
+  // แถบคำอธิบายสีจุดสัมผัส
+  if (colorMode) {
+    y += 42;
+    const legend = [
+      { c: C_SEND,    t: 'ส่งสัมผัส' },
+      { c: C_RECEIVE, t: 'รับสัมผัส' },
+      { c: C_CROSS,   t: 'สัมผัสระหว่างบท' }
+    ];
+    ctx.font = '500 23px Prompt';
+    const dot = 16, dgap = 9, itemGap = 34;
+    let totalLW = 0;
+    legend.forEach((it, i) => {
+      totalLW += dot + dgap + ctx.measureText(it.t).width + (i < legend.length - 1 ? itemGap : 0);
+    });
+    let lx = centerX - totalLW / 2;
+    ctx.textAlign = 'left';
+    legend.forEach(it => {
+      ctx.fillStyle = it.c;
+      ctx.beginPath();
+      ctx.arc(lx + dot / 2, y - 8, dot / 2, 0, Math.PI * 2);
+      ctx.fill();
+      lx += dot + dgap;
+      ctx.fillStyle = '#475569';
+      ctx.fillText(it.t, lx, y);
+      lx += ctx.measureText(it.t).width + itemGap;
+    });
+    y += 24;
+  }
+
+  y += 46;
+  if (hasFooter) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#374151';
+    ctx.font = '600 32px Prompt';
+    if (name) { ctx.fillText('ผู้แต่ง: ' + name, centerX, y); y += 46; }
+    let line2 = [];
+    if (cls) line2.push('ชั้น ' + cls);
+    if (num) line2.push('เลขที่ ' + num);
+    if (line2.length) {
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '400 28px Prompt';
+      ctx.fillText(line2.join('   ·   '), centerX, y);
+      y += 42;
+    }
+  }
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#9aa3b2';
+  ctx.font = '400 22px Prompt';
+  ctx.fillText(thaiDateString(), centerX, hasFooter ? y : y + 4);
+
+  // ===== ดาวน์โหลด =====
+  try {
+    canvas.toBlob((blob) => {
+      if (!blob) { status.style.color = '#ef4444'; status.textContent = '❌ สร้างภาพไม่สำเร็จ'; restoreBtns(); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const safe = (name || 'ผลงาน').replace(/[\\/:*?"<>|]/g, '');
+      a.href = url;
+      a.download = `กาพย์ยานี๑๑_${safe}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      confetti({ particleCount: 80, spread: 65, origin: { y: 0.6 } });
+      status.style.color = '#16a34a';
+      status.textContent = '✅ บันทึกภาพเรียบร้อย!';
+      restoreBtns();
+    }, 'image/png');
+  } catch(e) {
+    status.style.color = '#ef4444';
+    status.textContent = '❌ ผิดพลาด: ' + e.message;
+    restoreBtns();
+  }
 }
 
 // ===== INIT =====
