@@ -447,6 +447,51 @@
     .qr-box img { border-radius: 12px; border: 3px solid #e0e7ff; margin: 12px auto; display: block; }
     .qr-url  { font-size: 11px; color: #6b7280; word-break: break-all; margin-top: 8px; }
 
+    /* ===== PRODUCT TOUR ===== */
+    .tour-overlay { position: fixed; inset: 0; z-index: 3000; display: none; }
+    .tour-overlay.active { display: block; }
+    .tour-spotlight {
+      position: fixed; border-radius: 12px;
+      box-shadow: 0 0 0 9999px rgba(15,23,42,0.78);
+      transition: top .45s cubic-bezier(.4,0,.2,1), left .45s cubic-bezier(.4,0,.2,1),
+                  width .45s cubic-bezier(.4,0,.2,1), height .45s cubic-bezier(.4,0,.2,1);
+      pointer-events: none; border: 0 solid transparent;
+    }
+    .tour-spotlight.show-ring { border: 3px solid #fbbf24; animation: tourPulse 1.7s infinite; }
+    @keyframes tourPulse {
+      0%   { box-shadow: 0 0 0 9999px rgba(15,23,42,0.78), 0 0 0 0 rgba(251,191,36,0.65); }
+      70%  { box-shadow: 0 0 0 9999px rgba(15,23,42,0.78), 0 0 0 18px rgba(251,191,36,0); }
+      100% { box-shadow: 0 0 0 9999px rgba(15,23,42,0.78), 0 0 0 0 rgba(251,191,36,0); }
+    }
+    .tour-tooltip {
+      position: fixed; z-index: 3002; background: white; border-radius: 16px;
+      padding: 18px 20px; width: 320px; max-width: calc(100vw - 28px);
+      box-shadow: 0 22px 55px rgba(0,0,0,0.35);
+      transition: top .35s ease, left .35s ease; animation: fadeInUp .3s ease-out;
+    }
+    .tt-step  { font-size: 12px; font-weight: 700; color: #6366f1; letter-spacing: .5px; margin-bottom: 4px; }
+    .tt-title { font-size: 17px; font-weight: 700; color: #1e293b; margin: 0 0 8px; }
+    .tt-desc  { font-size: 13.5px; color: #475569; line-height: 1.65; margin: 0 0 16px; }
+    .tt-footer{ display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .tt-progress { font-size: 12px; color: #94a3b8; }
+    .tt-btns { display: flex; gap: 8px; }
+    .tour-btn { padding: 8px 15px; border-radius: 9px; border: none; font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: 'Prompt','Kanit',sans-serif; transition: all .2s; }
+    .tour-btn-skip { background: transparent; color: #94a3b8; padding: 8px 8px; }
+    .tour-btn-skip:hover { color: #64748b; }
+    .tour-btn-prev { background: #eef2ff; color: #4f46e5; }
+    .tour-btn-prev:hover { background: #e0e7ff; }
+    .tour-btn-next { background: #6366f1; color: white; }
+    .tour-btn-next:hover { background: #4f46e5; }
+
+    /* tour settings radios */
+    .tour-radio { display: flex; align-items: flex-start; gap: 9px; padding: 9px 12px;
+      border: 1.5px solid #e2e8f0; border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: all .2s; }
+    .tour-radio:hover { border-color: #c7d2fe; background: #f8faff; }
+    .tour-radio input { margin-top: 3px; accent-color: #6366f1; flex-shrink: 0; }
+    .tour-radio .tr-text { font-size: 13px; color: #374151; line-height: 1.4; }
+    .tour-radio .tr-text small { display: block; color: #94a3b8; font-size: 11px; margin-top: 1px; }
+
     @media (max-width: 768px) {
       .container { margin: 10px; padding: 20px; }
       .title { font-size: 22px; }
@@ -517,8 +562,8 @@
   </div>
 
   <div class="top-controls">
-    <button class="verse-count-button" onclick="openVerseCountModal()">🗂️ จำนวนบท</button>
-    <button class="verse-count-button" style="background:#0ea5e9;" onclick="openQrModal()">📱 QR Code</button>
+    <button class="verse-count-button" id="btn-verse-count" onclick="openVerseCountModal()">🗂️ จำนวนบท</button>
+    <button class="verse-count-button" id="btn-qr" style="background:#0ea5e9;" onclick="openQrModal()">📱 QR Code</button>
     <button class="reset-button" onclick="resetData()">🗑️ เคลียร์กล่องข้อความ</button>
   </div>
 
@@ -529,7 +574,7 @@
       <h3 class="result-title" id="result-title">กาพย์ยานี ๑๑ (๒ บท)</h3>
       <div class="button-group">
         <button class="reset-button" onclick="resetData()">🗑️ เคลียร์กล่องข้อความ</button>
-        <button class="copy-button" style="background:#16a34a;" onclick="openSaveImageModal()">🖼️ บันทึกเป็นภาพส่งครู</button>
+        <button class="copy-button" id="btn-save-image" style="background:#16a34a;" onclick="openSaveImageModal()">🖼️ บันทึกเป็นภาพส่งครู</button>
         <button class="copy-button" id="copy-button" onclick="copyToClipboard()">📋 คัดลอก</button>
       </div>
     </div>
@@ -554,7 +599,7 @@
   </div>
 </div>
 
-<button onclick="openLargeText()" class="floating-btn">
+<button onclick="openLargeText()" id="btn-largetext" class="floating-btn">
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
   </svg>
@@ -590,6 +635,27 @@
       style="width:100%;padding:9px;background:#e0e7ff;color:#3730a3;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px;font-family:'Prompt','Kanit',sans-serif;">
       👁️ ดูตัวอย่างโลโก้
     </button>
+
+    <!-- Tour Settings Section -->
+    <div style="border-top:1px solid #e5e7eb;margin:10px 0;padding-top:14px;">
+      <p style="font-size:13px;font-weight:700;color:#374151;margin:0 0 8px;">🧭 การแนะนำการใช้งาน (Tour)</p>
+      <label class="tour-radio">
+        <input type="radio" name="tour-mode" value="off">
+        <span class="tr-text">🚫 ปิดการทัวร์<small>ไม่แสดงคำแนะนำใด ๆ</small></span>
+      </label>
+      <label class="tour-radio">
+        <input type="radio" name="tour-mode" value="first" checked>
+        <span class="tr-text">✅ เปิดเมื่อเข้าครั้งแรก<small>แสดงครั้งแรกที่เปิดเว็บ และรีเซ็ตใหม่ทุก 3 เดือน</small></span>
+      </label>
+      <label class="tour-radio">
+        <input type="radio" name="tour-mode" value="test">
+        <span class="tr-text">🧪 ทดสอบระบบ<small>เปิดทัวร์ทุกครั้งที่ refresh หน้าเว็บ</small></span>
+      </label>
+      <button onclick="closeSettings(); setTimeout(startTour, 250);"
+        style="width:100%;padding:9px;background:#eef2ff;color:#4f46e5;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-top:2px;font-family:'Prompt','Kanit',sans-serif;">
+        ▶️ เริ่มทัวร์ตอนนี้ (ดูตัวอย่าง)
+      </button>
+    </div>
 
     <!-- Cloud Sync Section -->
     <div style="border-top:1px solid #e5e7eb;margin:10px 0;padding-top:14px;">
@@ -716,6 +782,24 @@
   </div>
 </div>
 
+<!-- ===== PRODUCT TOUR OVERLAY ===== -->
+<div id="tourOverlay" class="tour-overlay">
+  <div id="tourSpotlight" class="tour-spotlight"></div>
+  <div id="tourTooltip" class="tour-tooltip">
+    <div class="tt-step" id="tt-step"></div>
+    <h3 class="tt-title" id="tt-title"></h3>
+    <p class="tt-desc" id="tt-desc"></p>
+    <div class="tt-footer">
+      <span class="tt-progress" id="tt-progress"></span>
+      <div class="tt-btns">
+        <button class="tour-btn tour-btn-skip" onclick="endTour()">ข้าม</button>
+        <button class="tour-btn tour-btn-prev" id="tt-prev" onclick="tourPrev()">ย้อนกลับ</button>
+        <button class="tour-btn tour-btn-next" id="tt-next" onclick="tourNext()">ถัดไป</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Large Text Modal -->
 <div id="largeTextModal" class="largetext-overlay">
   <button class="largetext-close" onclick="closeLargeText()">✕</button>
@@ -749,6 +833,7 @@ const db = firebase.firestore();
 let totalStanzas = 2;
 let pendingCount  = 2;
 let largeTextFontSize = 48;
+let tourMode = 'first';
 
 // verse global ID: บท s, วรรค v (1-4) => (s-1)*4 + v
 function vid(s, v) { return (s - 1) * 4 + v; }
@@ -1329,7 +1414,8 @@ function _collectSettingsObj() {
     appTitle:   document.getElementById('app-title-input').value.trim(),
     goldText:   document.getElementById('gold-btn-text-input').value.trim(),
     goldUrl:    document.getElementById('gold-btn-url-input').value.trim(),
-    goldVisible: document.getElementById('gold-btn-visible-input').checked
+    goldVisible: document.getElementById('gold-btn-visible-input').checked,
+    tourMode:   (document.querySelector('input[name="tour-mode"]:checked') || {}).value || 'first'
   };
 }
 
@@ -1343,6 +1429,10 @@ function _applySettings(s) {
   const goldVisible = (s.goldVisible !== false);
   document.getElementById('gold-btn-visible-input').checked = goldVisible;
   document.querySelector('.gold-button-container').style.display = goldVisible ? '' : 'none';
+  // Tour mode (ค่าเดิมที่ไม่มี field ให้เป็น 'first')
+  tourMode = s.tourMode || 'first';
+  const tourRadio = document.querySelector(`input[name="tour-mode"][value="${tourMode}"]`);
+  if (tourRadio) tourRadio.checked = true;
 }
 
 function saveSettings() {
@@ -1839,6 +1929,157 @@ async function saveCompositionImage(colorMode) {
   }
 }
 
+// ===== PRODUCT TOUR ENGINE =====
+const TOUR_LAST_KEY = 'kaph_yani_tour_lastshown';
+const TOUR_RESET_MS = 90 * 24 * 60 * 60 * 1000; // 3 เดือน
+let tourSteps = [];
+let tourIndex = 0;
+let tourActive = false;
+
+function buildTourSteps() {
+  return [
+    { target: null, step: 'เริ่มต้น', title: '👋 ยินดีต้อนรับ!',
+      desc: 'นี่คือเครื่องมือช่วยแต่งกาพย์ยานี ๑๑ มาดูปุ่มสำคัญต่าง ๆ กันสั้น ๆ ก่อนเริ่มใช้งานนะครับ' },
+    { target: '#btn-verse-count', step: 'จำนวนบท', title: '🗂️ เลือกจำนวนบท',
+      desc: 'กำหนดจำนวนบทที่ต้องการแต่งได้ตั้งแต่ ๑ ถึง ๑๐ บท ระบบจะคำนวณจุดสัมผัสให้อัตโนมัติ' },
+    { target: '#btn-qr', step: 'แชร์', title: '📱 QR Code',
+      desc: 'สร้าง QR Code เพื่อเปิดระบบนี้ในอุปกรณ์อื่นพร้อมการตั้งค่าปัจจุบัน เหมาะกับการแจกให้นักเรียน' },
+    { target: '#verses-container .verse-section', step: 'แต่งกลอน', title: '✍️ กรอกคำในแต่ละวรรค',
+      desc: 'พิมพ์คำลงแต่ละช่อง (๑ ช่อง = ๑ คำ) ระบบจะตรวจสัมผัสให้ทันที สีส้ม=ส่งสัมผัส ม่วง=รับสัมผัส ชมพู=สัมผัสระหว่างบท' },
+    { target: '#btn-save-image', step: 'บันทึกผลงาน', title: '🖼️ บันทึกเป็นภาพส่งครู',
+      desc: 'แปลงบทประพันธ์เป็นภาพสวยงามพร้อมชื่อผู้แต่ง เลือกได้ว่าจะลงสีจุดสัมผัสด้วยหรือไม่ แล้วดาวน์โหลดเป็นไฟล์ PNG' },
+    { target: '#copy-button', step: 'คัดลอก', title: '📋 คัดลอกบทประพันธ์',
+      desc: 'คัดลอกข้อความบทประพันธ์ทั้งหมดไปวางในที่อื่นได้อย่างรวดเร็ว' },
+    { target: '#btn-largetext', step: 'อ่านง่าย', title: '🔍 มองตัวใหญ่',
+      desc: 'เปิดโหมดแสดงบทประพันธ์ตัวอักษรขนาดใหญ่ ปรับขนาดได้ เหมาะกับการอ่านออกเสียงหน้าชั้น' },
+    { target: '#gold-btn-link', step: 'ตรวจทาน', title: '✨ ระบบตรวจทาน',
+      desc: 'เมื่อแต่งเสร็จ คลิกที่นี่เพื่อไปยังระบบตรวจทานบทประพันธ์ที่แต่งเสร็จแล้ว' },
+    { target: null, step: 'พร้อมแล้ว', title: '🎉 เริ่มแต่งกลอนได้เลย!',
+      desc: 'พร้อมแล้วครับ ลองแต่งกาพย์ยานี ๑๑ ของคุณได้เลย ขอให้สนุกกับการสร้างสรรค์บทประพันธ์นะครับ' }
+  ];
+}
+
+function tourIsVisible(el) {
+  if (!el) return false;
+  const cs = getComputedStyle(el);
+  if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.height > 0;
+}
+
+function startTour() {
+  tourSteps = buildTourSteps();
+  tourActive = true;
+  document.getElementById('tourOverlay').classList.add('active');
+  window.addEventListener('resize', positionCurrentTourStep);
+  window.addEventListener('scroll', positionCurrentTourStep, true);
+  document.addEventListener('keydown', tourKeyHandler);
+  tourGoto(0, 1);
+}
+
+function endTour() {
+  tourActive = false;
+  document.getElementById('tourOverlay').classList.remove('active');
+  window.removeEventListener('resize', positionCurrentTourStep);
+  window.removeEventListener('scroll', positionCurrentTourStep, true);
+  document.removeEventListener('keydown', tourKeyHandler);
+}
+
+function tourKeyHandler(e) {
+  if (!tourActive) return;
+  if (e.key === 'Escape') endTour();
+  else if (e.key === 'ArrowRight') tourNext();
+  else if (e.key === 'ArrowLeft') tourPrev();
+}
+
+function tourGoto(i, dir) {
+  if (i < 0) { i = 0; dir = 1; }
+  if (i >= tourSteps.length) { endTour(); return; }
+  const step = tourSteps[i];
+  // ข้ามขั้นที่เป้าหมายมองไม่เห็น (เช่น ปุ่มลิงก์ถูกซ่อน)
+  if (step.target && !tourIsVisible(document.querySelector(step.target))) {
+    tourGoto(i + dir, dir);
+    return;
+  }
+  tourIndex = i;
+  // เลื่อนเป้าหมายเข้ามาในจอ
+  if (step.target) {
+    const el = document.querySelector(step.target);
+    if (el) el.scrollIntoView({ block: 'center', inline: 'nearest' });
+  }
+  requestAnimationFrame(() => requestAnimationFrame(() => positionCurrentTourStep()));
+  renderTourContent(step);
+}
+
+function renderTourContent(step) {
+  document.getElementById('tt-step').textContent = step.step || '';
+  document.getElementById('tt-title').textContent = step.title;
+  document.getElementById('tt-desc').textContent = step.desc;
+  document.getElementById('tt-progress').textContent = `${tourIndex + 1} / ${tourSteps.length}`;
+  const prevBtn = document.getElementById('tt-prev');
+  const nextBtn = document.getElementById('tt-next');
+  prevBtn.style.display = tourIndex === 0 ? 'none' : '';
+  nextBtn.textContent = (tourIndex === tourSteps.length - 1) ? 'เสร็จสิ้น ✓' : 'ถัดไป →';
+}
+
+function positionCurrentTourStep() {
+  if (!tourActive) return;
+  const step = tourSteps[tourIndex];
+  const spot = document.getElementById('tourSpotlight');
+  const tip  = document.getElementById('tourTooltip');
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const el = step.target ? document.querySelector(step.target) : null;
+
+  if (!el || !tourIsVisible(el)) {
+    // ขั้นตอนกลางจอ (ไม่มีเป้าหมาย) — มืดทั้งหน้า ไม่มีวงไฮไลต์
+    spot.classList.remove('show-ring');
+    spot.style.width = '0px'; spot.style.height = '0px';
+    spot.style.top = (vh / 2) + 'px'; spot.style.left = (vw / 2) + 'px';
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    tip.style.left = Math.max(14, (vw - tw) / 2) + 'px';
+    tip.style.top  = Math.max(14, (vh - th) / 2) + 'px';
+    return;
+  }
+
+  const r = el.getBoundingClientRect();
+  const pad = 8;
+  spot.classList.add('show-ring');
+  spot.style.top = (r.top - pad) + 'px';
+  spot.style.left = (r.left - pad) + 'px';
+  spot.style.width = (r.width + pad * 2) + 'px';
+  spot.style.height = (r.height + pad * 2) + 'px';
+
+  const tw = tip.offsetWidth, th = tip.offsetHeight, gap = 16;
+  // วางใต้เป้าหมายก่อน ถ้าไม่พอที่ค่อยวางด้านบน
+  let top = r.bottom + gap;
+  if (top + th > vh - 12) {
+    top = r.top - gap - th;
+    if (top < 12) top = Math.min(Math.max(12, r.bottom + gap), vh - th - 12);
+  }
+  let left = r.left + r.width / 2 - tw / 2;
+  left = Math.max(12, Math.min(left, vw - tw - 12));
+  tip.style.top = top + 'px';
+  tip.style.left = left + 'px';
+}
+
+function tourNext() {
+  if (tourIndex === tourSteps.length - 1) { endTour(); return; }
+  tourGoto(tourIndex + 1, 1);
+}
+function tourPrev() { tourGoto(tourIndex - 1, -1); }
+
+function maybeStartTour() {
+  if (tourMode === 'off') return;
+  if (tourMode === 'test') { startTour(); return; }
+  // mode === 'first'
+  const last = localStorage.getItem(TOUR_LAST_KEY);
+  const now = Date.now();
+  if (!last || (now - parseInt(last, 10)) > TOUR_RESET_MS) {
+    localStorage.setItem(TOUR_LAST_KEY, String(now));
+    setTimeout(startTour, 600); // รอให้หน้าจอ settle
+  }
+}
+
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', async () => {
   // Check URL for cloud config param first
@@ -1866,6 +2107,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     .then(r => r.json())
     .then(d => { document.getElementById('view-count').textContent = d.count; })
     .catch(() => { document.getElementById('view-count').textContent = '—'; });
+
+  // เริ่ม Product Tour ตามโหมดที่ตั้งค่าไว้
+  maybeStartTour();
 });
 </script>
 </body>
