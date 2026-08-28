@@ -515,6 +515,155 @@
       .samphus-indicator { font-size: 8px; padding: 1px 4px; }
       .mini-modal-box { max-width: 95vw; padding: 18px; }
     }
+  
+/* ============================================================
+   ===== CLASSROOM MODE (โหมดฝึกแต่งในห้องเรียน) — ADDED =====
+   ============================================================ */
+.cr-badge-bar{
+  display:none; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center;
+  background:linear-gradient(135deg,#0ea5e9,#2563eb); color:#fff;
+  padding:9px 14px; border-radius:12px; margin:0 0 14px; font-size:14px;
+  box-shadow:0 4px 14px rgba(37,99,235,.28);
+}
+.cr-badge-bar.active{display:flex;}
+.cr-badge-bar b{font-weight:800;letter-spacing:.5px;}
+.cr-chip{background:rgba(255,255,255,.22);padding:3px 10px;border-radius:999px;font-size:13px;}
+.cr-mini-btn{
+  background:#fff;color:#2563eb;border:none;border-radius:8px;
+  padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.cr-mini-btn:hover{background:#eff6ff;}
+.cr-mini-btn.danger{color:#dc2626;}
+
+/* ---------- Overlay ทั่วไปของโหมดห้องเรียน ---------- */
+.cr-overlay{
+  display:none; position:fixed; inset:0; z-index:12000;
+  background:rgba(15,23,42,.72); backdrop-filter:blur(3px);
+  align-items:center; justify-content:center; padding:16px; overflow-y:auto;
+}
+.cr-overlay.active{display:flex;}
+.cr-card{
+  background:#fff; border-radius:18px; width:100%; max-width:460px;
+  padding:26px 24px; box-shadow:0 20px 50px rgba(0,0,0,.3);
+  animation:crPop .22s ease; max-height:92vh; overflow-y:auto;
+}
+.cr-card.wide{max-width:1080px;}
+@keyframes crPop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+.cr-title{font-size:21px;font-weight:800;color:#1e293b;text-align:center;margin:0 0 6px;}
+.cr-sub{font-size:14px;color:#64748b;text-align:center;margin:0 0 18px;line-height:1.6;}
+.cr-label{display:block;font-size:13px;font-weight:700;color:#334155;margin:0 0 6px;}
+.cr-input{
+  width:100%; padding:11px 14px; border:2px solid #e2e8f0; border-radius:10px;
+  font-size:15px; font-family:inherit; margin-bottom:14px; outline:none; transition:.15s;
+}
+.cr-input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+.cr-btn{
+  width:100%; padding:12px; border:none; border-radius:10px; font-size:15px;
+  font-weight:700; cursor:pointer; font-family:inherit; transition:.15s; margin-bottom:10px;
+}
+.cr-btn:hover{transform:translateY(-1px);filter:brightness(1.06);}
+.cr-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+.cr-btn-primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;}
+.cr-btn-teacher{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;}
+.cr-btn-student{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;}
+.cr-btn-ghost{background:#f1f5f9;color:#475569;}
+.cr-role-btn{
+  display:flex;align-items:center;gap:14px;text-align:left;padding:16px 18px;
+  border:2px solid #e2e8f0;border-radius:14px;background:#fff;cursor:pointer;
+  width:100%;margin-bottom:12px;transition:.15s;font-family:inherit;
+}
+.cr-role-btn:hover{border-color:#2563eb;background:#f8fafc;transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.08);}
+.cr-role-ico{font-size:32px;line-height:1;}
+.cr-role-t{font-size:17px;font-weight:800;color:#1e293b;}
+.cr-role-d{font-size:13px;color:#64748b;margin-top:2px;}
+.cr-status{font-size:13px;color:#64748b;text-align:center;min-height:18px;margin-bottom:6px;}
+.cr-err{color:#dc2626;}
+
+/* ---------- QR ห้องเรียน ---------- */
+.cr-code-box{
+  text-align:center;background:#f8fafc;border:2px dashed #cbd5e1;border-radius:14px;
+  padding:14px;margin-bottom:14px;
+}
+.cr-code{font-size:34px;font-weight:900;letter-spacing:6px;color:#1d4ed8;font-family:'Courier New',monospace;}
+.cr-qr-img{width:220px;height:220px;border-radius:12px;border:6px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.14);}
+.cr-url{font-size:11px;color:#64748b;word-break:break-all;background:#f1f5f9;padding:8px;border-radius:8px;margin:10px 0;}
+
+/* ---------- Dashboard ครู ---------- */
+.cr-dash-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  border-bottom:2px solid #e2e8f0;padding-bottom:14px;margin-bottom:16px;
+}
+.cr-dash-title{font-size:20px;font-weight:800;color:#1e293b;margin:0;}
+.cr-dash-meta{font-size:13px;color:#64748b;margin-top:3px;}
+.cr-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.cr-stat{flex:1;min-width:110px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;text-align:center;}
+.cr-stat-n{font-size:24px;font-weight:900;color:#1d4ed8;}
+.cr-stat-l{font-size:12px;color:#64748b;}
+.cr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px;}
+.cr-scard{
+  background:#fff;border:2px solid #e2e8f0;border-radius:14px;padding:14px;cursor:pointer;transition:.15s;
+}
+.cr-scard:hover{border-color:#2563eb;transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,.1);}
+.cr-scard-top{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.cr-avatar{
+  width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#7c3aed);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;
+}
+.cr-sname{font-size:15px;font-weight:700;color:#1e293b;line-height:1.3;word-break:break-word;}
+.cr-stime{font-size:11px;color:#94a3b8;}
+.cr-bar{height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-bottom:6px;}
+.cr-bar-f{height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:99px;transition:width .3s;}
+.cr-scard-info{display:flex;justify-content:space-between;font-size:12px;color:#64748b;}
+.cr-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:4px;}
+.cr-dot.idle{background:#cbd5e1;}
+.cr-empty{text-align:center;color:#94a3b8;padding:36px 12px;font-size:15px;}
+
+/* ---------- มุมมองผลงานนักเรียน (ครู) ---------- */
+.cr-work-stanza{background:#f8fafc;border-radius:12px;padding:12px 14px;margin-bottom:10px;border-left:4px solid #2563eb;}
+.cr-work-sn{font-size:12px;font-weight:700;color:#2563eb;margin-bottom:6px;}
+.cr-work-line{font-size:19px;color:#1e293b;line-height:2;font-family:'Sarabun',sans-serif;}
+.cr-work-line .cr-blank{color:#cbd5e1;}
+.cr-cmt-list{max-height:190px;overflow-y:auto;margin-bottom:10px;}
+.cr-cmt{background:#eff6ff;border-radius:10px;padding:9px 12px;margin-bottom:7px;font-size:14px;color:#1e3a8a;}
+.cr-cmt-meta{font-size:11px;color:#64748b;margin-top:3px;}
+.cr-cmt-row{display:flex;gap:8px;}
+.cr-cmt-row .cr-input{margin-bottom:0;}
+.cr-cmt-row .cr-btn{width:auto;padding:11px 18px;margin-bottom:0;white-space:nowrap;}
+.cr-quick{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px;}
+.cr-quick button{
+  background:#f1f5f9;border:1px solid #e2e8f0;border-radius:99px;padding:5px 11px;
+  font-size:12px;cursor:pointer;font-family:inherit;color:#475569;
+}
+.cr-quick button:hover{background:#e0e7ff;border-color:#2563eb;color:#1d4ed8;}
+
+/* ---------- แจ้งเตือนฝั่งนักเรียน ---------- */
+.cr-toast-wrap{position:fixed;top:16px;right:16px;z-index:15000;display:flex;flex-direction:column;gap:10px;max-width:340px;}
+.cr-toast{
+  background:#fff;border-left:6px solid #f59e0b;border-radius:12px;padding:13px 15px;
+  box-shadow:0 10px 30px rgba(0,0,0,.22);animation:crSlide .3s ease;
+}
+@keyframes crSlide{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+.cr-toast-t{font-size:13px;font-weight:800;color:#b45309;margin-bottom:4px;}
+.cr-toast-b{font-size:15px;color:#1e293b;line-height:1.55;word-break:break-word;}
+.cr-toast-x{float:right;cursor:pointer;color:#94a3b8;font-size:18px;line-height:1;margin-left:8px;}
+.cr-bell{
+  display:none;position:fixed;bottom:86px;right:20px;z-index:9000;
+  background:#f59e0b;color:#fff;border:none;border-radius:50px;padding:12px 18px;
+  font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;
+  box-shadow:0 6px 20px rgba(245,158,11,.45);
+}
+.cr-bell.active{display:flex;align-items:center;gap:7px;}
+.cr-bell-n{background:#dc2626;border-radius:99px;padding:1px 8px;font-size:12px;}
+
+@media (max-width:600px){
+  .cr-card{padding:20px 16px;}
+  .cr-code{font-size:27px;letter-spacing:4px;}
+  .cr-grid{grid-template-columns:1fr 1fr;}
+  .cr-cmt-row{flex-direction:column;}
+  .cr-cmt-row .cr-btn{width:100%;}
+  .cr-toast-wrap{left:12px;right:12px;max-width:none;}
+}
+
   </style>
 </head>
 <body>
@@ -2112,5 +2261,834 @@ document.addEventListener('DOMContentLoaded', async () => {
   maybeStartTour();
 });
 </script>
+
+<!-- ============================================================
+     ===== CLASSROOM MODE MARKUP (โหมดฝึกแต่งในห้องเรียน) =====
+     ============================================================ -->
+
+<!-- เลือกบทบาท (หลังสแกน QR) -->
+<div id="crRoleModal" class="cr-overlay">
+  <div class="cr-card">
+    <h2 class="cr-title">🏫 เข้าสู่ห้องเรียน</h2>
+    <p class="cr-sub">รหัสห้อง <b id="cr-role-code" style="color:#1d4ed8;letter-spacing:2px;"></b><br>กรุณาเลือกบทบาทของคุณ</p>
+    <button class="cr-role-btn" onclick="crChooseRole('student')">
+      <span class="cr-role-ico">🧑‍🎓</span>
+      <span><span class="cr-role-t">นักเรียน</span><span class="cr-role-d">กรอกชื่อ-สกุล แล้วเริ่มฝึกแต่งกาพย์</span></span>
+    </button>
+    <button class="cr-role-btn" onclick="crChooseRole('teacher')">
+      <span class="cr-role-ico">👩‍🏫</span>
+      <span><span class="cr-role-t">ครูผู้สอน</span><span class="cr-role-d">ดูแดชบอร์ดผลงานนักเรียนแบบเรียลไทม์</span></span>
+    </button>
+    <button class="cr-btn cr-btn-ghost" onclick="crCloseRole()">ยกเลิก</button>
+  </div>
+</div>
+
+<!-- เมนูหลักโหมดห้องเรียน (กดจากปุ่มบนหน้าเว็บ) -->
+<div id="crMenuModal" class="cr-overlay">
+  <div class="cr-card">
+    <h2 class="cr-title">🏫 โหมดฝึกแต่งในห้องเรียน</h2>
+    <p class="cr-sub">ครูสร้างห้อง → นักเรียนสแกน QR เข้าห้อง → ครูดูผลงานสดและคอมเมนต์ได้ทันที</p>
+    <button class="cr-btn cr-btn-teacher" onclick="crOpenCreateRoom()">👩‍🏫 สร้างห้องเรียนใหม่ (สำหรับครู)</button>
+    <div style="margin:16px 0 8px;">
+      <label class="cr-label">หรือเข้าร่วมด้วยรหัสห้อง</label>
+      <div class="cr-cmt-row">
+        <input type="text" id="cr-join-code" class="cr-input" placeholder="เช่น A1B2C3" maxlength="6"
+               style="text-transform:uppercase;letter-spacing:3px;font-weight:700;text-align:center;">
+        <button class="cr-btn cr-btn-primary" onclick="crJoinByCode()">เข้าห้อง</button>
+      </div>
+    </div>
+    <div class="cr-status" id="cr-menu-status"></div>
+    <button class="cr-btn cr-btn-ghost" onclick="crCloseModal('crMenuModal')">ปิด</button>
+  </div>
+</div>
+
+<!-- ครู: ตั้งชื่อห้อง -->
+<div id="crCreateModal" class="cr-overlay">
+  <div class="cr-card">
+    <h2 class="cr-title">👩‍🏫 สร้างห้องเรียน</h2>
+    <p class="cr-sub">ตั้งชื่อกิจกรรมและชื่อครูผู้สอน เพื่อให้นักเรียนเห็นเมื่อเข้าห้อง</p>
+    <label class="cr-label">ชื่อกิจกรรม / หัวข้อการแต่ง</label>
+    <input type="text" id="cr-room-title" class="cr-input" placeholder="เช่น ฝึกแต่งกาพย์ยานี ๑๑ หัวข้อธรรมชาติ">
+    <label class="cr-label">ชื่อครูผู้สอน</label>
+    <input type="text" id="cr-room-teacher" class="cr-input" placeholder="เช่น ครูนนทพัทธ์ หิรัญเรือง">
+    <label class="cr-label">รหัสผ่านครู (ใช้ยืนยันตัวตนเมื่อเข้าแดชบอร์ด)</label>
+    <input type="password" id="cr-room-pin" class="cr-input" placeholder="ตั้งรหัส 4-12 ตัวอักษร" maxlength="12">
+    <div class="cr-status" id="cr-create-status"></div>
+    <button class="cr-btn cr-btn-teacher" id="cr-create-btn" onclick="crCreateRoom()">✨ สร้างห้องเรียน</button>
+    <button class="cr-btn cr-btn-ghost" onclick="crCloseModal('crCreateModal')">ยกเลิก</button>
+  </div>
+</div>
+
+<!-- QR ของห้องเรียน -->
+<div id="crQrModal" class="cr-overlay">
+  <div class="cr-card">
+    <h2 class="cr-title">📱 QR สแกนเข้าห้องเรียน</h2>
+    <p class="cr-sub" id="cr-qr-roomtitle"></p>
+    <div class="cr-code-box">
+      <div style="font-size:12px;color:#64748b;margin-bottom:4px;">รหัสห้อง</div>
+      <div class="cr-code" id="cr-qr-code">------</div>
+    </div>
+    <div style="text-align:center;">
+      <img id="cr-qr-img" class="cr-qr-img" src="" alt="QR Code ห้องเรียน">
+    </div>
+    <div class="cr-url" id="cr-qr-url"></div>
+    <button class="cr-btn cr-btn-primary" onclick="crCopyRoomLink()" id="cr-qr-copy">📋 คัดลอกลิงก์ห้องเรียน</button>
+    <button class="cr-btn cr-btn-teacher" onclick="crCloseModal('crQrModal');crOpenDashboard()">📊 ไปที่แดชบอร์ดครู</button>
+    <button class="cr-btn cr-btn-ghost" onclick="crCloseModal('crQrModal')">ปิด</button>
+  </div>
+</div>
+
+<!-- นักเรียน: กรอกชื่อ-สกุล -->
+<div id="crStudentModal" class="cr-overlay">
+  <div class="cr-card">
+    <h2 class="cr-title">🧑‍🎓 ลงชื่อเข้าห้องเรียน</h2>
+    <p class="cr-sub" id="cr-student-roomtitle"></p>
+    <label class="cr-label">ชื่อ - สกุล <span style="color:#dc2626;">*</span></label>
+    <input type="text" id="cr-student-name" class="cr-input" placeholder="เช่น เด็กชายสมชาย ใจดี">
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;">
+        <label class="cr-label">ชั้น</label>
+        <input type="text" id="cr-student-class" class="cr-input" placeholder="เช่น ม.๓/๑">
+      </div>
+      <div style="flex:1;">
+        <label class="cr-label">เลขที่</label>
+        <input type="text" id="cr-student-no" class="cr-input" placeholder="เช่น ๑๒">
+      </div>
+    </div>
+    <div class="cr-status" id="cr-student-status"></div>
+    <button class="cr-btn cr-btn-student" id="cr-student-btn" onclick="crJoinAsStudent()">✅ เข้าสู่หน้าฝึกแต่ง</button>
+    <button class="cr-btn cr-btn-ghost" onclick="crCloseModal('crStudentModal')">ยกเลิก</button>
+  </div>
+</div>
+
+<!-- ครู: ยืนยันรหัสผ่าน -->
+<div id="crPinModal" class="cr-overlay">
+  <div class="cr-card">
+    <h2 class="cr-title">🔐 ยืนยันตัวตนครูผู้สอน</h2>
+    <p class="cr-sub">กรอกรหัสผ่านครูของห้องนี้เพื่อเข้าแดชบอร์ด</p>
+    <input type="password" id="cr-pin-input" class="cr-input" placeholder="รหัสผ่านครู"
+           style="text-align:center;letter-spacing:3px;" onkeypress="if(event.key==='Enter')crVerifyPin()">
+    <div class="cr-status cr-err" id="cr-pin-status"></div>
+    <button class="cr-btn cr-btn-teacher" onclick="crVerifyPin()">เข้าสู่แดชบอร์ด</button>
+    <button class="cr-btn cr-btn-ghost" onclick="crCloseModal('crPinModal')">ยกเลิก</button>
+  </div>
+</div>
+
+<!-- ครู: แดชบอร์ดเรียลไทม์ -->
+<div id="crDashModal" class="cr-overlay">
+  <div class="cr-card wide">
+    <div class="cr-dash-head">
+      <div>
+        <h2 class="cr-dash-title" id="cr-dash-title">📊 แดชบอร์ดห้องเรียน</h2>
+        <div class="cr-dash-meta" id="cr-dash-meta"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="cr-mini-btn" style="background:#0ea5e9;color:#fff;" onclick="crOpenRoomQr()">📱 QR ห้อง</button>
+        <button class="cr-mini-btn" style="background:#f1f5f9;" onclick="crCloseModal('crDashModal')">✕ ปิด</button>
+      </div>
+    </div>
+    <div class="cr-stats">
+      <div class="cr-stat"><div class="cr-stat-n" id="cr-stat-total">0</div><div class="cr-stat-l">นักเรียนทั้งหมด</div></div>
+      <div class="cr-stat"><div class="cr-stat-n" id="cr-stat-active">0</div><div class="cr-stat-l">กำลังแต่งอยู่</div></div>
+      <div class="cr-stat"><div class="cr-stat-n" id="cr-stat-done">0</div><div class="cr-stat-l">แต่งครบทุกคำ</div></div>
+      <div class="cr-stat"><div class="cr-stat-n" id="cr-stat-avg">0%</div><div class="cr-stat-l">ความคืบหน้าเฉลี่ย</div></div>
+    </div>
+    <div class="cr-grid" id="cr-student-grid"></div>
+    <div class="cr-empty" id="cr-dash-empty">ยังไม่มีนักเรียนเข้าห้อง — ให้นักเรียนสแกน QR เพื่อเข้าร่วม</div>
+  </div>
+</div>
+
+<!-- ครู: ดูผลงานนักเรียนรายคน + คอมเมนต์สด -->
+<div id="crWorkModal" class="cr-overlay">
+  <div class="cr-card wide" style="max-width:760px;">
+    <div class="cr-dash-head">
+      <div>
+        <h2 class="cr-dash-title" id="cr-work-name">ผลงานนักเรียน</h2>
+        <div class="cr-dash-meta" id="cr-work-meta"></div>
+      </div>
+      <button class="cr-mini-btn" style="background:#f1f5f9;" onclick="crCloseWork()">← กลับแดชบอร์ด</button>
+    </div>
+    <div id="cr-work-body"></div>
+    <h4 style="margin:16px 0 8px;color:#1e293b;font-size:15px;">💬 คอมเมนต์ถึงนักเรียน (ส่งแบบสด)</h4>
+    <div class="cr-cmt-list" id="cr-work-comments"></div>
+    <div class="cr-quick">
+      <button onclick="crQuickComment('เก่งมาก! สัมผัสถูกต้องแล้ว 👍')">👍 เก่งมาก</button>
+      <button onclick="crQuickComment('ลองตรวจคำสัมผัสอีกครั้งนะ')">🔍 ตรวจสัมผัส</button>
+      <button onclick="crQuickComment('จำนวนคำในวรรคยังไม่ครบ ลองเติมให้ครบนะ')">✏️ เติมคำให้ครบ</button>
+      <button onclick="crQuickComment('เลือกใช้คำได้สละสลวยมาก ✨')">✨ ใช้คำดี</button>
+    </div>
+    <div class="cr-cmt-row">
+      <input type="text" id="cr-cmt-input" class="cr-input" placeholder="พิมพ์คอมเมนต์ถึงนักเรียน..."
+             onkeypress="if(event.key==='Enter')crSendComment()">
+      <button class="cr-btn cr-btn-primary" onclick="crSendComment()">ส่ง 📨</button>
+    </div>
+    <div class="cr-status" id="cr-cmt-status"></div>
+  </div>
+</div>
+
+<!-- นักเรียน: กล่องข้อความจากครูทั้งหมด -->
+<div id="crInboxModal" class="cr-overlay">
+  <div class="cr-card">
+    <h2 class="cr-title">💬 ข้อความจากครู</h2>
+    <p class="cr-sub" id="cr-inbox-sub"></p>
+    <div class="cr-cmt-list" id="cr-inbox-list" style="max-height:320px;"></div>
+    <button class="cr-btn cr-btn-ghost" onclick="crCloseModal('crInboxModal')">ปิด</button>
+  </div>
+</div>
+
+<!-- Toast แจ้งเตือนนักเรียน -->
+<div class="cr-toast-wrap" id="cr-toast-wrap"></div>
+
+<!-- ปุ่มกระดิ่งฝั่งนักเรียน -->
+<button class="cr-bell" id="cr-bell" onclick="crOpenInbox()">
+  <span>🔔 ข้อความจากครู</span><span class="cr-bell-n" id="cr-bell-n">0</span>
+</button>
+
+
+<!-- ============================================================
+     ===== CLASSROOM MODE SCRIPT (โหมดฝึกแต่งในห้องเรียน) =====
+     ทำงานแยกอิสระจากสคริปต์เดิม ไม่แก้ไขตัวแปร/ฟังก์ชันเดิม
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  // ---------- ค่าคงที่ ----------
+  var CR_SESSION_KEY = 'kaph_yani_room_session_v1';
+  var CR_SEEN_KEY    = 'kaph_yani_room_seen_comments_v1';
+  var CR_ROOMS       = 'yani_rooms';          // ชื่อ collection บน Firestore
+  var VERSE_LEN      = { 1: 5, 2: 6, 3: 5, 4: 6 };
+
+  // ---------- สถานะภายใน ----------
+  var S = {
+    role: null,          // 'teacher' | 'student'
+    roomCode: null,
+    roomTitle: '',
+    roomTeacher: '',
+    studentId: null,
+    studentName: '',
+    studentClass: '',
+    studentNo: ''
+  };
+  var unsubStudents = null, unsubOneStudent = null, unsubComments = null, unsubMyComments = null;
+  var currentViewId = null;
+  var studentsCache = {};
+  var myComments = [];
+  var seenIds = {};
+  var syncTimer = null;
+  var pendingRoomCode = null;
+
+  // ---------- ตัวช่วย ----------
+  function $(id) { return document.getElementById(id); }
+  function db_() { return (typeof db !== 'undefined' && db) ? db : (window.firebase ? firebase.firestore() : null); }
+  function stanzaCount() { return (typeof totalStanzas !== 'undefined' && totalStanzas) ? totalStanzas : 2; }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function nowStr(ms) {
+    if (!ms) return '-';
+    var d = new Date(ms), n = Date.now(), diff = Math.floor((n - ms) / 1000);
+    if (diff < 10) return 'เมื่อสักครู่';
+    if (diff < 60) return diff + ' วินาทีที่แล้ว';
+    if (diff < 3600) return Math.floor(diff / 60) + ' นาทีที่แล้ว';
+    return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+  }
+  function genCode() {
+    var c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', r = '';
+    for (var i = 0; i < 6; i++) r += c.charAt(Math.floor(Math.random() * c.length));
+    return r;
+  }
+  function saveSession() { try { localStorage.setItem(CR_SESSION_KEY, JSON.stringify(S)); } catch (e) {} }
+  function clearSession() { try { localStorage.removeItem(CR_SESSION_KEY); } catch (e) {} }
+  function loadSession() {
+    try {
+      var raw = localStorage.getItem(CR_SESSION_KEY);
+      if (raw) { var o = JSON.parse(raw); for (var k in o) if (o.hasOwnProperty(k)) S[k] = o[k]; return !!S.roomCode; }
+    } catch (e) {}
+    return false;
+  }
+  function loadSeen() { try { seenIds = JSON.parse(localStorage.getItem(CR_SEEN_KEY) || '{}'); } catch (e) { seenIds = {}; } }
+  function saveSeen() { try { localStorage.setItem(CR_SEEN_KEY, JSON.stringify(seenIds)); } catch (e) {} }
+
+  window.crCloseModal = function (id) { var el = $(id); if (el) el.classList.remove('active'); };
+  function openModal(id) {
+    // ถ้ามีทัวร์แนะนำการใช้งานเปิดค้างอยู่ ให้ปิดก่อน เพื่อไม่ให้บังหน้าจอห้องเรียน
+    try { if (typeof tourActive !== 'undefined' && tourActive && typeof endTour === 'function') endTour(); } catch (e) {}
+    var el = $(id); if (el) el.classList.add('active');
+  }
+
+  // ---------- เก็บข้อมูลบทประพันธ์ปัจจุบัน ----------
+  function collectWork() {
+    var words = {}, filled = 0, total = 0, st = stanzaCount();
+    document.querySelectorAll('.word-input').forEach(function (inp) {
+      var key = 'v' + inp.dataset.verse + '_p' + inp.dataset.position;
+      var val = (inp.value || '').trim();
+      words[key] = val;
+      total++;
+      if (val) filled++;
+    });
+    return { words: words, stanzas: st, filled: filled, total: total };
+  }
+
+  function renderWork(data) {
+    var st = data.stanzas || 2, words = data.words || {}, html = '', any = false;
+    for (var s = 1; s <= st; s++) {
+      var lines = '';
+      for (var v = 1; v <= 4; v++) {
+        var gid = (s - 1) * 4 + v, len = VERSE_LEN[v], parts = [], has = false;
+        for (var p = 1; p <= len; p++) {
+          var w = words['v' + gid + '_p' + p];
+          if (w) { parts.push(esc(w)); has = true; any = true; }
+          else parts.push('<span class="cr-blank">＿</span>');
+        }
+        lines += '<div class="cr-work-line">' + parts.join(' ') + '</div>';
+      }
+      html += '<div class="cr-work-stanza"><div class="cr-work-sn">บทที่ ' + s + '</div>' + lines + '</div>';
+    }
+    if (!any) return '<div class="cr-empty">นักเรียนยังไม่ได้เริ่มแต่ง</div>';
+    return html;
+  }
+
+  // ---------- แถบสถานะห้องเรียน ----------
+  function ensureBadgeBar() {
+    var bar = $('cr-badge-bar');
+    if (bar) return bar;
+    bar = document.createElement('div');
+    bar.id = 'cr-badge-bar';
+    bar.className = 'cr-badge-bar';
+    var host = document.querySelector('.top-controls');
+    if (host && host.parentNode) host.parentNode.insertBefore(bar, host);
+    else document.querySelector('.container').appendChild(bar);
+    return bar;
+  }
+  function updateBadgeBar() {
+    var bar = ensureBadgeBar();
+    if (!S.roomCode) { bar.classList.remove('active'); bar.innerHTML = ''; return; }
+    if (S.role === 'student') {
+      bar.innerHTML =
+        '<span>🏫 ห้อง <b>' + esc(S.roomCode) + '</b></span>' +
+        '<span class="cr-chip">🧑‍🎓 ' + esc(S.studentName) + (S.studentClass ? ' · ' + esc(S.studentClass) : '') + '</span>' +
+        '<span class="cr-chip" id="cr-sync-chip">☁️ ซิงก์อัตโนมัติ</span>' +
+        '<button class="cr-mini-btn danger" onclick="crLeaveRoom()">ออกจากห้อง</button>';
+    } else {
+      bar.innerHTML =
+        '<span>👩‍🏫 ห้อง <b>' + esc(S.roomCode) + '</b></span>' +
+        '<span class="cr-chip">' + esc(S.roomTitle || 'ห้องเรียน') + '</span>' +
+        '<button class="cr-mini-btn" onclick="crOpenDashboard()">📊 แดชบอร์ด</button>' +
+        '<button class="cr-mini-btn" onclick="crOpenRoomQr()">📱 QR</button>' +
+        '<button class="cr-mini-btn danger" onclick="crLeaveRoom()">ปิดห้อง</button>';
+    }
+    bar.classList.add('active');
+  }
+
+  // ============================================================
+  // ===== ส่วนของครู: สร้างห้อง / แดชบอร์ด / คอมเมนต์ =====
+  // ============================================================
+  window.crOpenClassroomMenu = function () {
+    if (S.roomCode && S.role === 'teacher') { crOpenDashboard(); return; }
+    if (S.roomCode && S.role === 'student') { openModal('crInboxModal'); crRenderInbox(); return; }
+    $('cr-menu-status').textContent = '';
+    openModal('crMenuModal');
+  };
+
+  window.crOpenCreateRoom = function () {
+    crCloseModal('crMenuModal');
+    $('cr-create-status').textContent = '';
+    if (!$('cr-room-teacher').value) $('cr-room-teacher').value = 'ครูนนทพัทธ์ หิรัญเรือง';
+    openModal('crCreateModal');
+  };
+
+  window.crCreateRoom = async function () {
+    var title = $('cr-room-title').value.trim() || 'ฝึกแต่งกาพย์ยานี ๑๑';
+    var teacher = $('cr-room-teacher').value.trim() || 'ครูผู้สอน';
+    var pin = $('cr-room-pin').value.trim();
+    var st = $('cr-create-status'), btn = $('cr-create-btn');
+    st.className = 'cr-status';
+    if (pin.length < 4) { st.className = 'cr-status cr-err'; st.textContent = 'กรุณาตั้งรหัสผ่านครูอย่างน้อย 4 ตัวอักษร'; return; }
+    var d = db_();
+    if (!d) { st.className = 'cr-status cr-err'; st.textContent = 'เชื่อมต่อฐานข้อมูลไม่ได้'; return; }
+
+    btn.disabled = true; btn.textContent = '⏳ กำลังสร้างห้อง...';
+    st.textContent = '';
+    try {
+      var code = genCode(), tries = 0;
+      while (tries < 5) {
+        var snap = await d.collection(CR_ROOMS).doc(code).get();
+        if (!snap.exists) break;
+        code = genCode(); tries++;
+      }
+      await d.collection(CR_ROOMS).doc(code).set({
+        code: code, title: title, teacher: teacher, pin: pin,
+        createdAt: Date.now(), stanzas: stanzaCount(), active: true
+      });
+      S.role = 'teacher'; S.roomCode = code; S.roomTitle = title; S.roomTeacher = teacher;
+      saveSession(); updateBadgeBar();
+      crCloseModal('crCreateModal');
+      crOpenRoomQr();
+      startTeacherListener();
+    } catch (e) {
+      st.className = 'cr-status cr-err';
+      st.textContent = 'สร้างห้องไม่สำเร็จ: ' + (e && e.message ? e.message : 'ผิดพลาด');
+    }
+    btn.disabled = false; btn.textContent = '✨ สร้างห้องเรียน';
+  };
+
+  function roomUrl(code) {
+    return location.origin + location.pathname + '?room=' + code;
+  }
+
+  window.crOpenRoomQr = function () {
+    if (!S.roomCode) { alert('ยังไม่มีห้องเรียน'); return; }
+    var url = roomUrl(S.roomCode);
+    $('cr-qr-code').textContent = S.roomCode;
+    $('cr-qr-roomtitle').textContent = S.roomTitle || '';
+    $('cr-qr-url').textContent = url;
+    $('cr-qr-img').src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' +
+      encodeURIComponent(url) + '&format=png&bgcolor=ffffff';
+    openModal('crQrModal');
+  };
+
+  window.crCopyRoomLink = function () {
+    var url = roomUrl(S.roomCode), btn = $('cr-qr-copy');
+    var done = function () { btn.textContent = '✅ คัดลอกแล้ว!'; setTimeout(function () { btn.innerHTML = '📋 คัดลอกลิงก์ห้องเรียน'; }, 2000); };
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(function () { alert(url); });
+    else alert(url);
+  };
+
+  // ---------- ฟังข้อมูลนักเรียนแบบเรียลไทม์ ----------
+  function startTeacherListener() {
+    var d = db_();
+    if (!d || !S.roomCode) return;
+    if (unsubStudents) { try { unsubStudents(); } catch (e) {} unsubStudents = null; }
+    unsubStudents = d.collection(CR_ROOMS).doc(S.roomCode).collection('students')
+      .onSnapshot(function (snap) {
+        studentsCache = {};
+        snap.forEach(function (doc) { studentsCache[doc.id] = doc.data(); });
+        renderDashboard();
+      }, function (err) {
+        console.warn('[classroom] listener error', err);
+      });
+  }
+
+  window.crOpenDashboard = function () {
+    if (!S.roomCode || S.role !== 'teacher') { alert('กรุณาสร้างหรือเข้าห้องเรียนในฐานะครูก่อน'); return; }
+    $('cr-dash-title').textContent = '📊 ' + (S.roomTitle || 'แดชบอร์ดห้องเรียน');
+    $('cr-dash-meta').textContent = 'รหัสห้อง ' + S.roomCode + ' · ครู ' + (S.roomTeacher || '-');
+    openModal('crDashModal');
+    startTeacherListener();
+    renderDashboard();
+  };
+
+  function renderDashboard() {
+    var grid = $('cr-student-grid'), empty = $('cr-dash-empty');
+    if (!grid) return;
+    var ids = Object.keys(studentsCache);
+    ids.sort(function (a, b) { return (studentsCache[a].joinedAt || 0) - (studentsCache[b].joinedAt || 0); });
+
+    var totalP = 0, activeN = 0, doneN = 0, now = Date.now();
+    var html = '';
+    ids.forEach(function (id) {
+      var s = studentsCache[id];
+      var filled = s.filled || 0, tot = s.total || 1;
+      var pct = Math.round(filled / tot * 100);
+      totalP += pct;
+      var recent = s.updatedAt && (now - s.updatedAt < 120000);
+      if (recent) activeN++;
+      if (filled >= tot) doneN++;
+      var initial = (s.name || '?').trim().charAt(0);
+      html += '<div class="cr-scard" onclick="crViewStudent(\'' + id + '\')">' +
+        '<div class="cr-scard-top"><div class="cr-avatar">' + esc(initial) + '</div>' +
+        '<div><div class="cr-sname">' + esc(s.name || 'ไม่ระบุชื่อ') + '</div>' +
+        '<div class="cr-stime"><span class="cr-dot' + (recent ? '' : ' idle') + '"></span>' + nowStr(s.updatedAt) + '</div></div></div>' +
+        '<div class="cr-bar"><div class="cr-bar-f" style="width:' + pct + '%"></div></div>' +
+        '<div class="cr-scard-info"><span>' + filled + '/' + tot + ' คำ</span><span>' + pct + '%</span></div>' +
+        '</div>';
+    });
+    grid.innerHTML = html;
+    empty.style.display = ids.length ? 'none' : '';
+    $('cr-stat-total').textContent = ids.length;
+    $('cr-stat-active').textContent = activeN;
+    $('cr-stat-done').textContent = doneN;
+    $('cr-stat-avg').textContent = (ids.length ? Math.round(totalP / ids.length) : 0) + '%';
+  }
+
+  // ---------- ดูผลงานนักเรียนรายคน ----------
+  window.crViewStudent = function (id) {
+    var d = db_();
+    if (!d) return;
+    currentViewId = id;
+    var s = studentsCache[id] || {};
+    $('cr-work-name').textContent = '🧑‍🎓 ' + (s.name || 'นักเรียน');
+    $('cr-work-meta').textContent = (s.cls ? 'ชั้น ' + s.cls + ' ' : '') + (s.no ? 'เลขที่ ' + s.no : '');
+    $('cr-work-body').innerHTML = renderWork(s);
+    $('cr-cmt-status').textContent = '';
+    $('cr-cmt-input').value = '';
+    openModal('crWorkModal');
+
+    var ref = d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(id);
+    if (unsubOneStudent) { try { unsubOneStudent(); } catch (e) {} }
+    unsubOneStudent = ref.onSnapshot(function (doc) {
+      if (!doc.exists || currentViewId !== id) return;
+      var data = doc.data();
+      studentsCache[id] = data;
+      $('cr-work-body').innerHTML = renderWork(data);
+      $('cr-work-meta').textContent =
+        (data.cls ? 'ชั้น ' + data.cls + ' · ' : '') + (data.no ? 'เลขที่ ' + data.no + ' · ' : '') +
+        'อัปเดต ' + nowStr(data.updatedAt) + ' · ' + (data.filled || 0) + '/' + (data.total || 0) + ' คำ';
+    });
+
+    if (unsubComments) { try { unsubComments(); } catch (e) {} }
+    unsubComments = ref.collection('comments').orderBy('ts', 'desc').limit(30)
+      .onSnapshot(function (snap) {
+        var html = '';
+        snap.forEach(function (doc) {
+          var c = doc.data();
+          html += '<div class="cr-cmt">' + esc(c.text) +
+            '<div class="cr-cmt-meta">' + nowStr(c.ts) + (c.read ? ' · ✅ นักเรียนอ่านแล้ว' : ' · ส่งแล้ว') + '</div></div>';
+        });
+        $('cr-work-comments').innerHTML = html || '<div style="font-size:13px;color:#94a3b8;text-align:center;padding:10px;">ยังไม่มีคอมเมนต์</div>';
+      });
+  };
+
+  window.crCloseWork = function () {
+    if (unsubOneStudent) { try { unsubOneStudent(); } catch (e) {} unsubOneStudent = null; }
+    if (unsubComments) { try { unsubComments(); } catch (e) {} unsubComments = null; }
+    currentViewId = null;
+    crCloseModal('crWorkModal');
+  };
+
+  window.crQuickComment = function (text) {
+    $('cr-cmt-input').value = text;
+    crSendComment();
+  };
+
+  window.crSendComment = async function () {
+    var inp = $('cr-cmt-input'), text = inp.value.trim(), st = $('cr-cmt-status');
+    if (!text || !currentViewId) return;
+    var d = db_();
+    if (!d) return;
+    st.className = 'cr-status'; st.textContent = '⏳ กำลังส่ง...';
+    try {
+      await d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(currentViewId)
+        .collection('comments').add({
+          text: text, ts: Date.now(), from: S.roomTeacher || 'ครูผู้สอน', read: false
+        });
+      inp.value = '';
+      st.textContent = '✅ ส่งคอมเมนต์ถึงนักเรียนแล้ว';
+      setTimeout(function () { st.textContent = ''; }, 2500);
+    } catch (e) {
+      st.className = 'cr-status cr-err';
+      st.textContent = 'ส่งไม่สำเร็จ: ' + (e && e.message ? e.message : 'ผิดพลาด');
+    }
+  };
+
+  // ============================================================
+  // ===== ส่วนของนักเรียน: เข้าห้อง / ซิงก์ / รับแจ้งเตือน =====
+  // ============================================================
+  window.crChooseRole = function (role) {
+    var code = pendingRoomCode || S.roomCode;
+    if (!code) return;
+    crCloseModal('crRoleModal');
+    if (role === 'student') {
+      $('cr-student-roomtitle').textContent = (S.roomTitle || 'ห้องเรียน') + ' · รหัสห้อง ' + code;
+      $('cr-student-status').textContent = '';
+      openModal('crStudentModal');
+      setTimeout(function () { $('cr-student-name').focus(); }, 200);
+    } else {
+      $('cr-pin-status').textContent = '';
+      $('cr-pin-input').value = '';
+      openModal('crPinModal');
+      setTimeout(function () { $('cr-pin-input').focus(); }, 200);
+    }
+  };
+
+  window.crCloseRole = function () {
+    crCloseModal('crRoleModal');
+    pendingRoomCode = null;
+  };
+
+  window.crVerifyPin = async function () {
+    var code = pendingRoomCode || S.roomCode;
+    var pin = $('cr-pin-input').value.trim(), st = $('cr-pin-status');
+    var d = db_();
+    if (!d || !code) return;
+    st.textContent = '⏳ กำลังตรวจสอบ...';
+    try {
+      var doc = await d.collection(CR_ROOMS).doc(code).get();
+      if (!doc.exists) { st.textContent = 'ไม่พบห้องเรียนนี้'; return; }
+      var r = doc.data();
+      if (r.pin !== pin) { st.textContent = '❌ รหัสผ่านครูไม่ถูกต้อง'; return; }
+      S.role = 'teacher'; S.roomCode = code; S.roomTitle = r.title || ''; S.roomTeacher = r.teacher || '';
+      pendingRoomCode = null;
+      saveSession(); updateBadgeBar();
+      crCloseModal('crPinModal');
+      crOpenDashboard();
+    } catch (e) {
+      st.textContent = 'ตรวจสอบไม่สำเร็จ: ' + (e && e.message ? e.message : 'ผิดพลาด');
+    }
+  };
+
+  window.crJoinAsStudent = async function () {
+    var code = pendingRoomCode || S.roomCode;
+    var name = $('cr-student-name').value.trim();
+    var cls = $('cr-student-class').value.trim();
+    var no = $('cr-student-no').value.trim();
+    var st = $('cr-student-status'), btn = $('cr-student-btn');
+    st.className = 'cr-status';
+    if (!name) { st.className = 'cr-status cr-err'; st.textContent = 'กรุณากรอกชื่อ-สกุล'; return; }
+    var d = db_();
+    if (!d || !code) { st.className = 'cr-status cr-err'; st.textContent = 'เชื่อมต่อห้องเรียนไม่ได้'; return; }
+
+    btn.disabled = true; btn.textContent = '⏳ กำลังเข้าห้อง...';
+    try {
+      var sid = 'st_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
+      var work = collectWork();
+      await d.collection(CR_ROOMS).doc(code).collection('students').doc(sid).set({
+        name: name, cls: cls, no: no,
+        joinedAt: Date.now(), updatedAt: Date.now(),
+        stanzas: work.stanzas, words: work.words, filled: work.filled, total: work.total
+      });
+      S.role = 'student'; S.roomCode = code; S.studentId = sid;
+      S.studentName = name; S.studentClass = cls; S.studentNo = no;
+      pendingRoomCode = null;
+      saveSession(); updateBadgeBar();
+      crCloseModal('crStudentModal');
+      startStudentSync();
+      crToast('เข้าห้องเรียนสำเร็จ', 'สวัสดี ' + name + ' — เริ่มฝึกแต่งกาพย์ยานี ๑๑ ได้เลย ครูจะเห็นผลงานของคุณแบบเรียลไทม์', false);
+    } catch (e) {
+      st.className = 'cr-status cr-err';
+      st.textContent = 'เข้าห้องไม่สำเร็จ: ' + (e && e.message ? e.message : 'ผิดพลาด');
+    }
+    btn.disabled = false; btn.textContent = '✅ เข้าสู่หน้าฝึกแต่ง';
+  };
+
+  window.crJoinByCode = async function () {
+    var code = ($('cr-join-code').value || '').trim().toUpperCase();
+    var st = $('cr-menu-status');
+    st.className = 'cr-status';
+    if (code.length < 4) { st.className = 'cr-status cr-err'; st.textContent = 'กรุณากรอกรหัสห้อง'; return; }
+    st.textContent = '⏳ กำลังค้นหาห้อง...';
+    var ok = await openRoomByCode(code);
+    if (!ok) { st.className = 'cr-status cr-err'; st.textContent = 'ไม่พบห้องเรียนรหัสนี้'; return; }
+    st.textContent = '';
+    crCloseModal('crMenuModal');
+  };
+
+  async function openRoomByCode(code) {
+    var d = db_();
+    if (!d) return false;
+    try {
+      var doc = await d.collection(CR_ROOMS).doc(code).get();
+      if (!doc.exists) return false;
+      var r = doc.data();
+      pendingRoomCode = code;
+      S.roomTitle = r.title || '';
+      S.roomTeacher = r.teacher || '';
+      $('cr-role-code').textContent = code;
+      openModal('crRoleModal');
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // ---------- ซิงก์ผลงานนักเรียนขึ้นคลาวด์ ----------
+  function pushWork() {
+    var d = db_();
+    if (!d || S.role !== 'student' || !S.roomCode || !S.studentId) return;
+    var work = collectWork();
+    var chip = $('cr-sync-chip');
+    if (chip) chip.textContent = '☁️ กำลังบันทึก...';
+    d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(S.studentId).set({
+      name: S.studentName, cls: S.studentClass, no: S.studentNo,
+      updatedAt: Date.now(),
+      stanzas: work.stanzas, words: work.words, filled: work.filled, total: work.total
+    }, { merge: true }).then(function () {
+      if (chip) chip.textContent = '☁️ บันทึกแล้ว ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    }).catch(function () {
+      if (chip) chip.textContent = '⚠️ ซิงก์ไม่สำเร็จ';
+    });
+  }
+  function queueSync() {
+    if (S.role !== 'student') return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(pushWork, 900);
+  }
+
+  // จับการพิมพ์แบบ event delegation (ไม่แตะโค้ดเดิม และรองรับ input ที่สร้างใหม่)
+  document.addEventListener('input', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('word-input')) queueSync();
+  }, true);
+
+  function startStudentSync() {
+    pushWork();
+    listenMyComments();
+  }
+
+  // ---------- รับคอมเมนต์จากครูแบบเรียลไทม์ ----------
+  function listenMyComments() {
+    var d = db_();
+    if (!d || S.role !== 'student' || !S.roomCode || !S.studentId) return;
+    if (unsubMyComments) { try { unsubMyComments(); } catch (e) {} }
+    var first = true;
+    unsubMyComments = d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(S.studentId)
+      .collection('comments').orderBy('ts', 'desc').limit(30)
+      .onSnapshot(function (snap) {
+        myComments = [];
+        var fresh = [];
+        snap.forEach(function (doc) {
+          var c = doc.data();
+          c._id = doc.id;
+          myComments.push(c);
+          if (!seenIds[doc.id]) fresh.push({ id: doc.id, data: c, ref: doc.ref });
+        });
+        updateBell();
+        // ครั้งแรกหลังรีเฟรช: ไม่เด้งย้อนหลังทั้งหมด แค่ทำเครื่องหมายไว้ในกระดิ่ง
+        fresh.forEach(function (f) {
+          if (!first) {
+            crToast('💬 ครูส่งคอมเมนต์', f.data.text, true);
+            try { f.ref.update({ read: true }); } catch (e) {}
+            seenIds[f.id] = 1;
+          }
+        });
+        if (first) { first = false; }
+        saveSeen();
+      }, function (err) { console.warn('[classroom] comment listener', err); });
+  }
+
+  function updateBell() {
+    var bell = $('cr-bell'), n = $('cr-bell-n');
+    if (!bell) return;
+    if (S.role !== 'student' || !myComments.length) { bell.classList.remove('active'); return; }
+    var unread = myComments.filter(function (c) { return !seenIds[c._id]; }).length;
+    n.textContent = unread ? unread : myComments.length;
+    n.style.background = unread ? '#dc2626' : '#64748b';
+    bell.classList.add('active');
+  }
+
+  window.crOpenInbox = function () {
+    $('cr-inbox-sub').textContent = 'ห้อง ' + (S.roomCode || '-') + ' · ' + (S.roomTeacher || 'ครูผู้สอน');
+    crRenderInbox();
+    openModal('crInboxModal');
+    myComments.forEach(function (c) { seenIds[c._id] = 1; });
+    saveSeen(); updateBell();
+  };
+
+  window.crRenderInbox = function () {
+    var html = '';
+    myComments.forEach(function (c) {
+      html += '<div class="cr-cmt">' + esc(c.text) +
+        '<div class="cr-cmt-meta">' + esc(c.from || 'ครู') + ' · ' + nowStr(c.ts) + '</div></div>';
+    });
+    $('cr-inbox-list').innerHTML = html || '<div style="font-size:13px;color:#94a3b8;text-align:center;padding:14px;">ยังไม่มีข้อความจากครู</div>';
+  };
+
+  // ---------- Toast + เสียงเตือน ----------
+  window.crToast = function (title, body, sound) {
+    var wrap = $('cr-toast-wrap');
+    if (!wrap) return;
+    var el = document.createElement('div');
+    el.className = 'cr-toast';
+    el.innerHTML = '<span class="cr-toast-x" onclick="this.parentNode.remove()">×</span>' +
+      '<div class="cr-toast-t">' + esc(title) + '</div>' +
+      '<div class="cr-toast-b">' + esc(body) + '</div>';
+    wrap.appendChild(el);
+    if (sound) beep();
+    setTimeout(function () {
+      el.style.transition = 'opacity .4s, transform .4s';
+      el.style.opacity = '0'; el.style.transform = 'translateX(40px)';
+      setTimeout(function () { if (el.parentNode) el.remove(); }, 420);
+    }, 9000);
+  };
+
+  function beep() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      var ctx = new AC(), o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+      o.start(); o.stop(ctx.currentTime + 0.5);
+      setTimeout(function () { try { ctx.close(); } catch (e) {} }, 900);
+    } catch (e) {}
+  }
+
+  // ---------- ออกจากห้อง ----------
+  window.crLeaveRoom = function () {
+    var msg = S.role === 'teacher'
+      ? 'ต้องการออกจากห้องเรียนนี้หรือไม่? (ข้อมูลนักเรียนยังอยู่ในระบบ กลับเข้าได้ด้วยรหัสห้อง)'
+      : 'ต้องการออกจากห้องเรียนหรือไม่? บทประพันธ์ในเครื่องจะยังอยู่เหมือนเดิม';
+    if (!confirm(msg)) return;
+    [unsubStudents, unsubOneStudent, unsubComments, unsubMyComments].forEach(function (u) {
+      if (u) { try { u(); } catch (e) {} }
+    });
+    unsubStudents = unsubOneStudent = unsubComments = unsubMyComments = null;
+    S.role = null; S.roomCode = null; S.studentId = null; S.studentName = '';
+    S.studentClass = ''; S.studentNo = ''; S.roomTitle = ''; S.roomTeacher = '';
+    myComments = []; studentsCache = {};
+    clearSession(); updateBadgeBar(); updateBell();
+    ['crDashModal', 'crWorkModal', 'crInboxModal', 'crQrModal'].forEach(crCloseModal);
+    if (location.search.indexOf('room=') !== -1) {
+      history.replaceState(null, '', location.pathname);
+    }
+  };
+
+  // ---------- ปุ่มเปิดโหมดห้องเรียน ----------
+  function injectButton() {
+    if ($('btn-classroom')) return;
+    var host = document.querySelector('.top-controls');
+    if (!host) return;
+    var b = document.createElement('button');
+    b.id = 'btn-classroom';
+    b.className = 'verse-count-button';
+    b.style.background = '#7c3aed';
+    b.textContent = '🏫 โหมดห้องเรียน';
+    b.onclick = crOpenClassroomMenu;
+    var qr = $('btn-qr');
+    if (qr && qr.nextSibling) host.insertBefore(b, qr.nextSibling);
+    else host.appendChild(b);
+  }
+
+  // ---------- เริ่มระบบ ----------
+  function boot() {
+    injectButton();
+    loadSeen();
+    ensureBadgeBar();
+
+    var had = loadSession();
+    if (had) {
+      updateBadgeBar();
+      if (S.role === 'student') startStudentSync();
+      else if (S.role === 'teacher') startTeacherListener();
+    }
+
+    var code = new URLSearchParams(location.search).get('room');
+    if (code) {
+      code = code.trim().toUpperCase();
+      if (S.roomCode === code) {
+        // กลับเข้าห้องเดิมด้วยบทบาทเดิม
+        if (S.role === 'teacher') setTimeout(crOpenDashboard, 500);
+      } else {
+        setTimeout(function () { openRoomByCode(code); }, 700);
+      }
+    }
+
+    // รีเฟรชเวลา "อัปเดตล่าสุด" บนแดชบอร์ดทุก 20 วินาที
+    setInterval(function () {
+      if ($('crDashModal') && $('crDashModal').classList.contains('active')) renderDashboard();
+    }, 20000);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 350); });
+  } else {
+    setTimeout(boot, 350);
+  }
+})();
+</script>
+
 </body>
 </html>
