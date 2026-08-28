@@ -637,10 +637,15 @@
 .cr-quick button:hover{background:#e0e7ff;border-color:#2563eb;color:#1d4ed8;}
 
 /* ---------- แจ้งเตือนฝั่งนักเรียน ---------- */
+.cr-dim{
+  position:fixed; inset:0; z-index:14000; background:rgba(15,23,42,.45);
+  opacity:0; pointer-events:none; transition:opacity .35s ease;
+}
+.cr-dim.show{opacity:1;}
 .cr-toast-wrap{position:fixed;top:16px;right:16px;z-index:15000;display:flex;flex-direction:column;gap:10px;max-width:340px;}
 .cr-toast{
-  background:#fff;border-left:6px solid #f59e0b;border-radius:12px;padding:13px 15px;
-  box-shadow:0 10px 30px rgba(0,0,0,.22);animation:crSlide .3s ease;
+  background:#fff;border-left:6px solid #f59e0b;border-radius:12px;padding:15px 17px;
+  box-shadow:0 14px 44px rgba(0,0,0,.42);animation:crSlide .3s ease;
 }
 @keyframes crSlide{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
 .cr-toast-t{font-size:13px;font-weight:800;color:#b45309;margin-bottom:4px;}
@@ -2909,11 +2914,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (chip) chip.textContent = '⚠️ ซิงก์ไม่สำเร็จ';
     });
   }
+  // หน่วงเวลาก่อนบันทึกขึ้นคลาวด์ (มิลลิวินาที)
+  // ยิ่งค่ามาก ยิ่งประหยัดโควตา Firestore แต่ครูจะเห็นผลงานช้าลงตามนั้น
+  var CR_SYNC_DELAY = 3000;
+
   function queueSync() {
     if (S.role !== 'student') return;
     clearTimeout(syncTimer);
-    syncTimer = setTimeout(pushWork, 900);
+    var chip = $('cr-sync-chip');
+    if (chip) chip.textContent = '✏️ กำลังพิมพ์...';
+    syncTimer = setTimeout(pushWork, CR_SYNC_DELAY);
   }
+
+  // บันทึกทันทีเมื่อนักเรียนสลับแท็บ/ย่อจอ/ปิดหน้า เพื่อไม่ให้คำที่พิมพ์ล่าสุดตกหล่น
+  function flushSync() {
+    if (S.role !== 'student') return;
+    clearTimeout(syncTimer);
+    pushWork();
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') flushSync();
+  });
+  window.addEventListener('pagehide', flushSync);
 
   // จับการพิมพ์แบบ event delegation (ไม่แตะโค้ดเดิม และรองรับ input ที่สร้างใหม่)
   document.addEventListener('input', function (e) {
@@ -2984,20 +3006,47 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   // ---------- Toast + เสียงเตือน ----------
+  // ฉากมืดหลัง toast — ทำให้ข้อความจากครูเด่นขึ้น แต่ไม่บังการใช้งาน (pointer-events:none)
+  function dimLayer() {
+    var d = $('cr-dim');
+    if (!d) {
+      d = document.createElement('div');
+      d.id = 'cr-dim';
+      d.className = 'cr-dim';
+      document.body.appendChild(d);
+    }
+    return d;
+  }
+  function refreshDim() {
+    var wrap = $('cr-toast-wrap');
+    var n = wrap ? wrap.querySelectorAll('.cr-toast').length : 0;
+    var d = dimLayer();
+    if (n > 0) d.classList.add('show'); else d.classList.remove('show');
+  }
+  window.crCloseToast = function (btn) {
+    var el = btn.parentNode;
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+    refreshDim();
+  };
+
   window.crToast = function (title, body, sound) {
     var wrap = $('cr-toast-wrap');
     if (!wrap) return;
     var el = document.createElement('div');
     el.className = 'cr-toast';
-    el.innerHTML = '<span class="cr-toast-x" onclick="this.parentNode.remove()">×</span>' +
+    el.innerHTML = '<span class="cr-toast-x" onclick="crCloseToast(this)">×</span>' +
       '<div class="cr-toast-t">' + esc(title) + '</div>' +
       '<div class="cr-toast-b">' + esc(body) + '</div>';
     wrap.appendChild(el);
+    refreshDim();
     if (sound) beep();
     setTimeout(function () {
       el.style.transition = 'opacity .4s, transform .4s';
       el.style.opacity = '0'; el.style.transform = 'translateX(40px)';
-      setTimeout(function () { if (el.parentNode) el.remove(); }, 420);
+      setTimeout(function () {
+        if (el.parentNode) el.parentNode.removeChild(el);
+        refreshDim();
+      }, 420);
     }, 9000);
   };
 
