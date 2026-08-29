@@ -660,6 +660,23 @@
 .cr-bell.active{display:flex;align-items:center;gap:7px;}
 .cr-bell-n{background:#dc2626;border-radius:99px;padding:1px 8px;font-size:12px;}
 
+/* ---------- แถบส่งออกผลงาน (ครู) ---------- */
+.cr-exp-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.cr-exp-btn{
+  background:#fff;border:1.5px solid #cbd5e1;border-radius:8px;padding:6px 12px;
+  font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:#334155;transition:.15s;
+}
+.cr-exp-btn:hover{border-color:#2563eb;color:#1d4ed8;background:#f8fafc;}
+.cr-exp-btn:disabled{opacity:.55;cursor:not-allowed;}
+.cr-exp-btn.word{border-color:#93c5fd;color:#1d4ed8;}
+.cr-exp-btn.img{border-color:#86efac;color:#15803d;}
+.cr-color-chk{
+  display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#475569;
+  background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 10px;
+  cursor:pointer;user-select:none;
+}
+.cr-exp-status{font-size:12.5px;color:#64748b;text-align:right;min-height:18px;margin:-8px 0 10px;}
+
 @media (max-width:600px){
   .cr-card{padding:20px 16px;}
   .cr-code{font-size:27px;letter-spacing:4px;}
@@ -2387,11 +2404,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         <h2 class="cr-dash-title" id="cr-dash-title">📊 แดชบอร์ดห้องเรียน</h2>
         <div class="cr-dash-meta" id="cr-dash-meta"></div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <div class="cr-exp-bar">
+        <label class="cr-color-chk">
+          <input type="checkbox" id="cr-dash-color" checked onchange="crSetExportColor(this.checked)"> ลงสีจุดสัมผัส
+        </label>
+        <button class="cr-exp-btn word" id="cr-exp-all-docx" onclick="crExportAllDocx()">📄 Word ทั้งห้อง</button>
+        <button class="cr-exp-btn img"  id="cr-exp-all-img"  onclick="crExportAllImages()">🖼️ ภาพทั้งห้อง</button>
         <button class="cr-mini-btn" style="background:#0ea5e9;color:#fff;" onclick="crOpenRoomQr()">📱 QR ห้อง</button>
         <button class="cr-mini-btn" style="background:#f1f5f9;" onclick="crCloseModal('crDashModal')">✕ ปิด</button>
       </div>
     </div>
+    <div class="cr-exp-status" id="cr-dash-exp-status"></div>
     <div class="cr-stats">
       <div class="cr-stat"><div class="cr-stat-n" id="cr-stat-total">0</div><div class="cr-stat-l">นักเรียนทั้งหมด</div></div>
       <div class="cr-stat"><div class="cr-stat-n" id="cr-stat-active">0</div><div class="cr-stat-l">กำลังแต่งอยู่</div></div>
@@ -2411,8 +2434,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         <h2 class="cr-dash-title" id="cr-work-name">ผลงานนักเรียน</h2>
         <div class="cr-dash-meta" id="cr-work-meta"></div>
       </div>
-      <button class="cr-mini-btn" style="background:#f1f5f9;" onclick="crCloseWork()">← กลับแดชบอร์ด</button>
+      <div class="cr-exp-bar">
+        <label class="cr-color-chk">
+          <input type="checkbox" id="cr-work-color" checked onchange="crSetExportColor(this.checked)"> ลงสีจุดสัมผัส
+        </label>
+        <button class="cr-exp-btn word" id="cr-exp-one-docx" onclick="crExportOneDocx()">📄 Word</button>
+        <button class="cr-exp-btn img"  id="cr-exp-one-img"  onclick="crExportOneImage()">🖼️ บันทึกภาพ</button>
+        <button class="cr-mini-btn" style="background:#f1f5f9;" onclick="crCloseWork()">← กลับแดชบอร์ด</button>
+      </div>
     </div>
+    <div class="cr-exp-status" id="cr-work-exp-status"></div>
     <div id="cr-work-body"></div>
     <h4 style="margin:16px 0 8px;color:#1e293b;font-size:15px;">💬 คอมเมนต์ถึงนักเรียน (ส่งแบบสด)</h4>
     <div class="cr-cmt-list" id="cr-work-comments"></div>
@@ -2730,6 +2761,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('cr-work-body').innerHTML = renderWork(s);
     $('cr-cmt-status').textContent = '';
     $('cr-cmt-input').value = '';
+    if ($('cr-work-exp-status')) $('cr-work-exp-status').textContent = '';
+    if ($('cr-work-color')) $('cr-work-color').checked = crColorOn;
     openModal('crWorkModal');
 
     var ref = d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(id);
@@ -3083,6 +3116,519 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (location.search.indexOf('room=') !== -1) {
       history.replaceState(null, '', location.pathname);
     }
+  };
+
+  // ============================================================
+  // ===== EXPORT: Word (.docx) + รูปภาพ — สำหรับครู =====
+  // ============================================================
+  var crColorOn = true;
+
+  window.crSetExportColor = function (on) {
+    crColorOn = !!on;
+    ['cr-dash-color', 'cr-work-color'].forEach(function (id) {
+      var el = $(id); if (el) el.checked = crColorOn;
+    });
+  };
+
+  function crStat(id, msg, isErr) {
+    var el = $(id); if (!el) return;
+    el.style.color = isErr ? '#dc2626' : '#64748b';
+    el.textContent = msg || '';
+  }
+  function crBusy(ids, on) {
+    ids.forEach(function (id) { var b = $(id); if (b) b.disabled = !!on; });
+  }
+  function crDownloadBlob(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2500);
+  }
+  function crSafeName(s) {
+    return String(s || 'ผลงาน').replace(/[\\/:*?"<>|]/g, '').trim() || 'ผลงาน';
+  }
+  function crThaiDate() {
+    if (typeof thaiDateString === 'function') return thaiDateString();
+    var m = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+             'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    var d = new Date();
+    return d.getDate() + ' ' + m[d.getMonth()] + ' พ.ศ. ' + (d.getFullYear() + 543);
+  }
+  function crArabic(s) {
+    var map = {'๐':'0','๑':'1','๒':'2','๓':'3','๔':'4','๕':'5','๖':'6','๗':'7','๘':'8','๙':'9'};
+    return String(s == null ? '' : s).replace(/[๐-๙]/g, function (c) { return map[c]; });
+  }
+  function crRoomMeta() {
+    return { roomTitle: S.roomTitle || 'ฝึกแต่งกาพย์ยานี ๑๑', teacher: S.roomTeacher || '', roomCode: S.roomCode || '' };
+  }
+  function crSortedStudents() {
+    var ids = Object.keys(studentsCache);
+    var list = ids.map(function (id) {
+      var s = studentsCache[id] || {};
+      return {
+        id: id, name: s.name || 'ไม่ระบุชื่อ', cls: s.cls || '', no: s.no || '',
+        words: s.words || {}, stanzas: s.stanzas || 2,
+        filled: s.filled || 0, total: s.total || 0, joinedAt: s.joinedAt || 0
+      };
+    });
+    list.sort(function (a, b) {
+      var c = String(a.cls).localeCompare(String(b.cls), 'th');
+      if (c !== 0) return c;
+      var na = parseInt(crArabic(a.no), 10), nb = parseInt(crArabic(b.no), 10);
+      if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+      if (!isNaN(na) && isNaN(nb)) return -1;
+      if (isNaN(na) && !isNaN(nb)) return 1;
+      return String(a.name).localeCompare(String(b.name), 'th');
+    });
+    return list;
+  }
+
+  // ---------- แปลงผลงานเป็นโครงสร้างบท/วรรค พร้อมสีจุดสัมผัส ----------
+  function crRhymeColor(s, v, pos, st) {
+    var C_SEND = '#e67e22', C_RECEIVE = '#9b59b6', C_CROSS = '#e91e63';
+    if (v === 1 && pos === 5) return C_SEND;
+    if (v === 2 && pos === 3) return C_RECEIVE;
+    if (v === 2 && pos === 6) return (s > 1 ? C_CROSS : C_SEND);
+    if (v === 3 && pos === 5) return C_RECEIVE;
+    if (v === 4 && pos === 6) return (s < st ? C_CROSS : null);
+    return null;
+  }
+  function crWorkToStanzas(work, colorMode) {
+    var st = work.stanzas || 2, words = work.words || {}, out = [];
+    for (var s = 1; s <= st; s++) {
+      var vs = [];
+      for (var v = 1; v <= 4; v++) {
+        var gid = (s - 1) * 4 + v, len = VERSE_LEN[v], arr = [];
+        for (var p = 1; p <= len; p++) {
+          arr.push({
+            word: (words['v' + gid + '_p' + p] || '').trim(),
+            color: colorMode ? crRhymeColor(s, v, p, st) : null
+          });
+        }
+        vs.push(arr);
+      }
+      var any = vs.some(function (a) { return a.some(function (x) { return x.word; }); });
+      if (any) out.push([[vs[0], vs[1]], [vs[2], vs[3]]]);
+    }
+    return out;
+  }
+
+  // ---------- สร้างภาพ (โครงเดียวกับปุ่มบันทึกภาพในโหมดเดิม) ----------
+  function crRoundRect(ctx, x, y, w, h, r) {
+    if (typeof roundRectPath === 'function') { roundRectPath(ctx, x, y, w, h, r); return; }
+    ctx.beginPath(); ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  async function crBuildImageBlob(work, meta, colorMode) {
+    var stanzas = crWorkToStanzas(work, colorMode);
+    if (!stanzas.length) return null;
+
+    try {
+      await Promise.all([
+        document.fonts.load('700 50px Prompt'),
+        document.fonts.load('600 32px Prompt'),
+        document.fonts.load('500 38px Prompt'),
+        document.fonts.load('400 24px Prompt')
+      ]);
+      await document.fonts.ready;
+    } catch (e) {}
+
+    var C_SEND = '#e67e22', C_RECEIVE = '#9b59b6', C_CROSS = '#e91e63';
+    var scale = 2, W = 1100, margin = 34, cardPad = 56;
+    var titleBlockH = 232, lineHeight = 80, stanzaGap = 48;
+    var hasFooter = !!(meta.name || meta.cls || meta.no);
+    var footerH = hasFooter ? 188 : 96;
+    var legendH = colorMode ? 64 : 0;
+
+    var bodyH = 0;
+    stanzas.forEach(function (rows, i) {
+      bodyH += rows.length * lineHeight;
+      if (i < stanzas.length - 1) bodyH += stanzaGap;
+    });
+    var H = margin + cardPad + titleBlockH + bodyH + 50 + legendH + footerH + cardPad + margin;
+
+    var canvas = document.createElement('canvas');
+    canvas.width = W * scale; canvas.height = H * scale;
+    var ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+
+    var bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#eef2fb'); bg.addColorStop(0.5, '#f6f0fb'); bg.addColorStop(1, '#e9f3fb');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    var cardX = margin, cardY = margin, cardW = W - margin * 2, cardH = H - margin * 2;
+    ctx.save();
+    ctx.shadowColor = 'rgba(60,70,120,0.18)'; ctx.shadowBlur = 34; ctx.shadowOffsetY = 14;
+    ctx.fillStyle = '#ffffff';
+    crRoundRect(ctx, cardX, cardY, cardW, cardH, 28); ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = '#d9b44a'; ctx.lineWidth = 3;
+    crRoundRect(ctx, cardX + 16, cardY + 16, cardW - 32, cardH - 32, 18); ctx.stroke();
+    ctx.strokeStyle = 'rgba(217,180,74,0.45)'; ctx.lineWidth = 1.5;
+    crRoundRect(ctx, cardX + 23, cardY + 23, cardW - 46, cardH - 46, 14); ctx.stroke();
+
+    var centerX = W / 2;
+    var y = cardY + cardPad + 18;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#b8860b'; ctx.font = '600 26px Prompt';
+    ctx.fillText('❖ กาพย์ยานี ๑๑ ❖', centerX, y);
+
+    y += 56;
+    var mainTitle = meta.topic || meta.roomTitle || 'บทประพันธ์';
+    var maxTitleW = cardW - cardPad * 2 - 30, tf = 50;
+    ctx.font = '700 ' + tf + 'px Prompt';
+    while (ctx.measureText(mainTitle).width > maxTitleW && tf > 26) {
+      tf -= 2; ctx.font = '700 ' + tf + 'px Prompt';
+    }
+    ctx.fillStyle = '#2c3e50'; ctx.fillText(mainTitle, centerX, y);
+
+    y += 34;
+    var uW = 220;
+    var ug = ctx.createLinearGradient(centerX - uW / 2, 0, centerX + uW / 2, 0);
+    ug.addColorStop(0, 'rgba(217,180,74,0)'); ug.addColorStop(0.5, '#d9b44a'); ug.addColorStop(1, 'rgba(217,180,74,0)');
+    ctx.strokeStyle = ug; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(centerX - uW / 2, y); ctx.lineTo(centerX + uW / 2, y); ctx.stroke();
+    ctx.fillStyle = '#d9b44a'; ctx.font = '400 22px Prompt'; ctx.fillText('✦', centerX, y - 8);
+
+    var sub = [];
+    if (meta.teacher) sub.push('ครูผู้สอน ' + meta.teacher);
+    if (meta.roomCode) sub.push('ห้อง ' + meta.roomCode);
+    if (sub.length) {
+      y += 36;
+      ctx.fillStyle = '#8b95a6'; ctx.font = '400 22px Prompt';
+      ctx.fillText(sub.join('   ·   '), centerX, y);
+    }
+
+    y = cardY + cardPad + titleBlockH;
+    var colGap = 70, leftAnchor = centerX - colGap / 2, rightAnchor = centerX + colGap / 2;
+
+    function drawVerse(words, anchorX, align) {
+      var parts = words.filter(function (w) { return w.word !== ''; });
+      if (!parts.length) return;
+      var joined = parts.map(function (w) { return w.word; }).join('');
+      var x = (align === 'right') ? anchorX - ctx.measureText(joined).width : anchorX;
+      var prev = ctx.textAlign; ctx.textAlign = 'left';
+      parts.forEach(function (p) {
+        ctx.fillStyle = p.color || '#1f2937';
+        ctx.fillText(p.word, x, y);
+        x += ctx.measureText(p.word).width;
+      });
+      ctx.textAlign = prev;
+    }
+
+    stanzas.forEach(function (rows, si) {
+      rows.forEach(function (pair) {
+        ctx.font = '500 38px Prompt';
+        drawVerse(pair[0], leftAnchor, 'right');
+        drawVerse(pair[1], rightAnchor, 'left');
+        y += lineHeight;
+      });
+      if (si < stanzas.length - 1) y += stanzaGap;
+    });
+
+    y += 6;
+    var fW = cardW - cardPad * 2 - 40;
+    ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(centerX - fW / 2, y); ctx.lineTo(centerX + fW / 2, y); ctx.stroke();
+
+    if (colorMode) {
+      y += 42;
+      var legend = [
+        { c: C_SEND, t: 'ส่งสัมผัส' },
+        { c: C_RECEIVE, t: 'รับสัมผัส' },
+        { c: C_CROSS, t: 'สัมผัสระหว่างบท' }
+      ];
+      ctx.font = '500 23px Prompt';
+      var dot = 16, dgap = 9, itemGap = 34, totalLW = 0;
+      legend.forEach(function (it, i) {
+        totalLW += dot + dgap + ctx.measureText(it.t).width + (i < legend.length - 1 ? itemGap : 0);
+      });
+      var lx = centerX - totalLW / 2;
+      ctx.textAlign = 'left';
+      legend.forEach(function (it) {
+        ctx.fillStyle = it.c;
+        ctx.beginPath(); ctx.arc(lx + dot / 2, y - 8, dot / 2, 0, Math.PI * 2); ctx.fill();
+        lx += dot + dgap;
+        ctx.fillStyle = '#475569'; ctx.fillText(it.t, lx, y);
+        lx += ctx.measureText(it.t).width + itemGap;
+      });
+      ctx.textAlign = 'center';
+      y += 24;
+    }
+
+    y += 46;
+    if (hasFooter) {
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#374151'; ctx.font = '600 32px Prompt';
+      if (meta.name) { ctx.fillText('ผู้แต่ง: ' + meta.name, centerX, y); y += 46; }
+      var l2 = [];
+      if (meta.cls) l2.push('ชั้น ' + meta.cls);
+      if (meta.no) l2.push('เลขที่ ' + meta.no);
+      if (l2.length) {
+        ctx.fillStyle = '#6b7280'; ctx.font = '400 28px Prompt';
+        ctx.fillText(l2.join('   ·   '), centerX, y); y += 42;
+      }
+    }
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#9aa3b2'; ctx.font = '400 22px Prompt';
+    ctx.fillText(crThaiDate(), centerX, hasFooter ? y : y + 4);
+
+    return await new Promise(function (res) {
+      canvas.toBlob(function (b) { res(b); }, 'image/png');
+    });
+  }
+
+  // ---------- สร้างไฟล์ Word (.docx) แบบ OOXML ----------
+  function crLoadJSZip() {
+    return new Promise(function (res, rej) {
+      if (window.JSZip) { res(window.JSZip); return; }
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload = function () { window.JSZip ? res(window.JSZip) : rej(new Error('JSZip ไม่พร้อมใช้งาน')); };
+      s.onerror = function () { rej(new Error('โหลดไลบรารีสร้างไฟล์ Word ไม่สำเร็จ (ตรวจสอบอินเทอร์เน็ต)')); };
+      document.head.appendChild(s);
+    });
+  }
+
+  var CR_FONT = 'TH Sarabun New';
+  function crXml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  }
+  function dRun(text, o) {
+    o = o || {};
+    var sz = o.size || 32;
+    var p = '<w:rFonts w:ascii="' + CR_FONT + '" w:hAnsi="' + CR_FONT + '" w:cs="' + CR_FONT + '"/>';
+    if (o.bold) p += '<w:b/><w:bCs/>';
+    if (o.color) p += '<w:color w:val="' + o.color + '"/>';
+    p += '<w:sz w:val="' + sz + '"/><w:szCs w:val="' + sz + '"/>';
+    return '<w:r><w:rPr>' + p + '</w:rPr><w:t xml:space="preserve">' + crXml(text) + '</w:t></w:r>';
+  }
+  function dPara(inner, o) {
+    o = o || {};
+    var pPr = '<w:pPr>';
+    if (o.align) pPr += '<w:jc w:val="' + o.align + '"/>';
+    pPr += '<w:spacing w:before="' + (o.before || 0) + '" w:after="' + (o.after || 0) +
+           '" w:line="' + (o.line || 240) + '" w:lineRule="auto"/></w:pPr>';
+    return '<w:p>' + pPr + (inner || '') + '</w:p>';
+  }
+  var D_PB = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+  function dBorders(val, color) {
+    return '<w:tblBorders>' + ['top','left','bottom','right','insideH','insideV'].map(function (k) {
+      return val === 'nil'
+        ? '<w:' + k + ' w:val="nil"/>'
+        : '<w:' + k + ' w:val="single" w:sz="6" w:space="0" w:color="' + (color || '999999') + '"/>';
+    }).join('') + '</w:tblBorders>';
+  }
+  function dVerseRuns(verse) {
+    return verse.filter(function (w) { return w.word; }).map(function (w) {
+      return dRun(w.word, { size: 32, color: w.color ? w.color.replace('#', '').toUpperCase() : null });
+    }).join('');
+  }
+  function dPoemTable(stanzaRows) {
+    var rows = stanzaRows.map(function (pair) {
+      return '<w:tr>' +
+        '<w:tc><w:tcPr><w:tcW w:w="3800" w:type="dxa"/></w:tcPr>' + dPara(dVerseRuns(pair[0]), { align: 'right' }) + '</w:tc>' +
+        '<w:tc><w:tcPr><w:tcW w:w="3800" w:type="dxa"/></w:tcPr>' + dPara(dVerseRuns(pair[1]), { align: 'left' }) + '</w:tc>' +
+        '</w:tr>';
+    }).join('');
+    return '<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:jc w:val="center"/>' + dBorders('nil') +
+      '<w:tblCellMar><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr>' +
+      '<w:tblGrid><w:gridCol w:w="3800"/><w:gridCol w:w="3800"/></w:tblGrid>' + rows + '</w:tbl>';
+  }
+  function dLegend() {
+    return dPara(
+      dRun('■ ', { color: 'E67E22', size: 30 }) + dRun('ส่งสัมผัส    ', { size: 26, color: '595959' }) +
+      dRun('■ ', { color: '9B59B6', size: 30 }) + dRun('รับสัมผัส    ', { size: 26, color: '595959' }) +
+      dRun('■ ', { color: 'E91E63', size: 30 }) + dRun('สัมผัสระหว่างบท', { size: 26, color: '595959' }),
+      { align: 'center', before: 160 });
+  }
+  function dSummaryTable(items) {
+    var w = [800, 3600, 1400, 1200, 1700];
+    function cell(t, o, cw) {
+      o = o || {};
+      return '<w:tc><w:tcPr><w:tcW w:w="' + cw + '" w:type="dxa"/>' +
+        (o.shade ? '<w:shd w:val="clear" w:color="auto" w:fill="EEF2FF"/>' : '') +
+        '</w:tcPr>' + dPara(dRun(t, { bold: o.bold, size: 28 }), { align: o.align || 'center' }) + '</w:tc>';
+    }
+    var head = '<w:tr><w:trPr><w:tblHeader/></w:trPr>' +
+      cell('ลำดับ', { bold: 1, shade: 1 }, w[0]) + cell('ชื่อ - สกุล', { bold: 1, shade: 1 }, w[1]) +
+      cell('ชั้น', { bold: 1, shade: 1 }, w[2]) + cell('เลขที่', { bold: 1, shade: 1 }, w[3]) +
+      cell('ความคืบหน้า', { bold: 1, shade: 1 }, w[4]) + '</w:tr>';
+    var body = items.map(function (it, i) {
+      var pct = it.total ? Math.round(it.filled / it.total * 100) : 0;
+      return '<w:tr>' + cell(String(i + 1), null, w[0]) + cell(it.name, { align: 'left' }, w[1]) +
+        cell(it.cls || '-', null, w[2]) + cell(it.no || '-', null, w[3]) +
+        cell(it.filled + '/' + it.total + '  (' + pct + '%)', null, w[4]) + '</w:tr>';
+    }).join('');
+    return '<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:jc w:val="center"/>' + dBorders('single') + '</w:tblPr>' +
+      '<w:tblGrid>' + w.map(function (x) { return '<w:gridCol w:w="' + x + '"/>'; }).join('') + '</w:tblGrid>' +
+      head + body + '</w:tbl>';
+  }
+  function dStudentBlock(item, meta, colorMode) {
+    var st = crWorkToStanzas(item, colorMode), out = '';
+    out += dPara(dRun(meta.roomTitle, { bold: true, size: 36 }), { align: 'center', after: 60 });
+    var sub = [];
+    if (meta.teacher) sub.push('ครูผู้สอน ' + meta.teacher);
+    if (meta.roomCode) sub.push('รหัสห้อง ' + meta.roomCode);
+    if (sub.length) out += dPara(dRun(sub.join('   ·   '), { size: 28, color: '595959' }), { align: 'center', after: 120 });
+    var who = [];
+    if (item.name) who.push('ผู้แต่ง: ' + item.name);
+    if (item.cls) who.push('ชั้น ' + item.cls);
+    if (item.no) who.push('เลขที่ ' + item.no);
+    if (who.length) out += dPara(dRun(who.join('   ·   '), { size: 32 }), { align: 'center', after: 240 });
+
+    if (!st.length) {
+      out += dPara(dRun('(นักเรียนยังไม่ได้เริ่มแต่ง)', { size: 30, color: '999999' }), { align: 'center' });
+    } else {
+      st.forEach(function (rows) { out += dPoemTable(rows) + dPara(''); });
+      if (colorMode) out += dLegend();
+    }
+    out += dPara(dRun('ความคืบหน้า ' + item.filled + '/' + item.total + ' คำ   ·   ' + crThaiDate(),
+      { size: 26, color: '808080' }), { align: 'center', before: 240 });
+    return out;
+  }
+
+  async function crBuildDocxBlob(items, meta, colorMode, withSummary) {
+    var JSZipLib = await crLoadJSZip();
+    var body = '';
+    if (withSummary) {
+      body += dPara(dRun(meta.roomTitle, { bold: true, size: 40 }), { align: 'center', after: 80 });
+      var sub = [];
+      if (meta.teacher) sub.push('ครูผู้สอน ' + meta.teacher);
+      if (meta.roomCode) sub.push('รหัสห้อง ' + meta.roomCode);
+      sub.push('นักเรียน ' + items.length + ' คน');
+      body += dPara(dRun(sub.join('   ·   '), { size: 28, color: '595959' }), { align: 'center', after: 100 });
+      body += dPara(dRun(crThaiDate(), { size: 26, color: '808080' }), { align: 'center', after: 260 });
+      body += dSummaryTable(items) + dPara('') + D_PB;
+    }
+    items.forEach(function (it, i) {
+      body += dStudentBlock(it, meta, colorMode);
+      if (i < items.length - 1) body += D_PB;
+    });
+    body += '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>' +
+      '<w:pgMar w:top="1417" w:right="1134" w:bottom="1134" w:left="1701" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>';
+
+    var doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+      '<w:body>' + body + '</w:body></w:document>';
+    var ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+      '</Types>';
+    var rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+      '</Relationships>';
+
+    var zip = new JSZipLib();
+    zip.file('[Content_Types].xml', ct);
+    zip.folder('_rels').file('.rels', rels);
+    zip.folder('word').file('document.xml', doc);
+    return zip.generateAsync({
+      type: 'blob',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      compression: 'DEFLATE'
+    });
+  }
+
+  // ---------- ปุ่ม: ส่งออกรายคน ----------
+  function crCurrentItem() {
+    if (!currentViewId) return null;
+    var s = studentsCache[currentViewId];
+    if (!s) return null;
+    return {
+      name: s.name || 'นักเรียน', cls: s.cls || '', no: s.no || '',
+      words: s.words || {}, stanzas: s.stanzas || 2,
+      filled: s.filled || 0, total: s.total || 0
+    };
+  }
+  function crFileLabel(it) {
+    return crSafeName((it.no ? it.no + '_' : '') + it.name);
+  }
+
+  window.crExportOneDocx = async function () {
+    var it = crCurrentItem();
+    if (!it) { alert('ไม่พบข้อมูลนักเรียน'); return; }
+    var ids = ['cr-exp-one-docx', 'cr-exp-one-img'];
+    crBusy(ids, true); crStat('cr-work-exp-status', '⏳ กำลังสร้างไฟล์ Word...');
+    try {
+      var blob = await crBuildDocxBlob([it], crRoomMeta(), crColorOn, false);
+      crDownloadBlob(blob, 'กาพย์ยานี๑๑_' + crFileLabel(it) + '.docx');
+      crStat('cr-work-exp-status', '✅ ดาวน์โหลดไฟล์ Word เรียบร้อย');
+    } catch (e) {
+      crStat('cr-work-exp-status', '❌ ' + (e && e.message ? e.message : 'สร้างไฟล์ไม่สำเร็จ'), true);
+    }
+    crBusy(ids, false);
+  };
+
+  window.crExportOneImage = async function () {
+    var it = crCurrentItem();
+    if (!it) { alert('ไม่พบข้อมูลนักเรียน'); return; }
+    var ids = ['cr-exp-one-docx', 'cr-exp-one-img'];
+    crBusy(ids, true); crStat('cr-work-exp-status', '⏳ กำลังสร้างภาพ...');
+    try {
+      var m = crRoomMeta();
+      m.name = it.name; m.cls = it.cls; m.no = it.no;
+      var blob = await crBuildImageBlob(it, m, crColorOn);
+      if (!blob) { crStat('cr-work-exp-status', '⚠️ นักเรียนยังไม่ได้เริ่มแต่ง', true); crBusy(ids, false); return; }
+      crDownloadBlob(blob, 'กาพย์ยานี๑๑_' + crFileLabel(it) + '.png');
+      crStat('cr-work-exp-status', '✅ บันทึกภาพเรียบร้อย');
+      try { if (typeof confetti === 'function') confetti({ particleCount: 70, spread: 65, origin: { y: 0.6 } }); } catch (e) {}
+    } catch (e) {
+      crStat('cr-work-exp-status', '❌ ' + (e && e.message ? e.message : 'สร้างภาพไม่สำเร็จ'), true);
+    }
+    crBusy(ids, false);
+  };
+
+  // ---------- ปุ่ม: ส่งออกทั้งห้อง ----------
+  window.crExportAllDocx = async function () {
+    var list = crSortedStudents();
+    if (!list.length) { alert('ยังไม่มีนักเรียนในห้องนี้'); return; }
+    var ids = ['cr-exp-all-docx', 'cr-exp-all-img'];
+    crBusy(ids, true); crStat('cr-dash-exp-status', '⏳ กำลังสร้างไฟล์ Word (' + list.length + ' คน)...');
+    try {
+      var blob = await crBuildDocxBlob(list, crRoomMeta(), crColorOn, true);
+      crDownloadBlob(blob, 'ผลงานห้อง_' + crSafeName(S.roomCode) + '_' + crSafeName(S.roomTitle) + '.docx');
+      crStat('cr-dash-exp-status', '✅ ดาวน์โหลดไฟล์ Word ทั้งห้องเรียบร้อย (' + list.length + ' คน)');
+    } catch (e) {
+      crStat('cr-dash-exp-status', '❌ ' + (e && e.message ? e.message : 'สร้างไฟล์ไม่สำเร็จ'), true);
+    }
+    crBusy(ids, false);
+  };
+
+  window.crExportAllImages = async function () {
+    var list = crSortedStudents();
+    if (!list.length) { alert('ยังไม่มีนักเรียนในห้องนี้'); return; }
+    if (!confirm('ระบบจะดาวน์โหลดภาพทีละไฟล์ รวม ' + list.length + ' ไฟล์\n' +
+                 'หากเบราว์เซอร์ถามเรื่อง "ดาวน์โหลดหลายไฟล์" กรุณากดอนุญาต\n\nดำเนินการต่อหรือไม่?')) return;
+    var ids = ['cr-exp-all-docx', 'cr-exp-all-img'];
+    crBusy(ids, true);
+    var ok = 0, skip = 0;
+    for (var i = 0; i < list.length; i++) {
+      var it = list[i];
+      crStat('cr-dash-exp-status', '⏳ กำลังสร้างภาพ ' + (i + 1) + '/' + list.length + ' — ' + it.name);
+      try {
+        var m = crRoomMeta();
+        m.name = it.name; m.cls = it.cls; m.no = it.no;
+        var blob = await crBuildImageBlob(it, m, crColorOn);
+        if (blob) { crDownloadBlob(blob, 'กาพย์ยานี๑๑_' + crFileLabel(it) + '.png'); ok++; }
+        else skip++;
+      } catch (e) { skip++; }
+      await new Promise(function (r) { setTimeout(r, 700); });
+    }
+    crStat('cr-dash-exp-status', '✅ บันทึกภาพสำเร็จ ' + ok + ' ไฟล์' + (skip ? ' · ข้าม ' + skip + ' คน (ยังไม่ได้เริ่มแต่ง)' : ''));
+    crBusy(ids, false);
   };
 
   // ---------- ปุ่มเปิดโหมดห้องเรียน ----------
