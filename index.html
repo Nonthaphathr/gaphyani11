@@ -660,6 +660,21 @@
 .cr-bell.active{display:flex;align-items:center;gap:7px;}
 .cr-bell-n{background:#dc2626;border-radius:99px;padding:1px 8px;font-size:12px;}
 
+/* ---------- ชื่อผลงาน ---------- */
+.cr-wt-chip{
+  background:rgba(255,255,255,.22);padding:3px 10px;border-radius:999px;font-size:13px;
+  cursor:pointer;border:1px dashed rgba(255,255,255,.6);transition:.15s;
+}
+.cr-wt-chip:hover{background:rgba(255,255,255,.36);}
+.cr-wt-line{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;
+  padding:9px 12px;margin-bottom:12px;
+}
+.cr-wt-label{font-size:12px;font-weight:700;color:#1d4ed8;white-space:nowrap;}
+.cr-wt-value{font-size:15px;font-weight:700;color:#1e293b;flex:1;min-width:120px;word-break:break-word;}
+.cr-wt-value.empty{color:#94a3b8;font-weight:400;font-style:italic;}
+
 /* ---------- แถบส่งออกผลงาน (ครู) ---------- */
 .cr-exp-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 .cr-exp-btn{
@@ -2365,6 +2380,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   <div class="cr-card">
     <h2 class="cr-title">🧑‍🎓 ลงชื่อเข้าห้องเรียน</h2>
     <p class="cr-sub" id="cr-student-roomtitle"></p>
+    <p style="font-size:12.5px;color:#0369a1;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:9px 12px;margin:0 0 14px;line-height:1.55;">
+      💡 หากเคยเข้าห้องนี้แล้ว ให้กรอก <b>ชื่อ-สกุลและเลขที่เดิม</b> ระบบจะเรียกผลงานเดิมกลับมาให้แต่งต่อได้ทันที
+    </p>
     <label class="cr-label">ชื่อ - สกุล <span style="color:#dc2626;">*</span></label>
     <input type="text" id="cr-student-name" class="cr-input" placeholder="เช่น เด็กชายสมชาย ใจดี">
     <div style="display:flex;gap:10px;">
@@ -2444,6 +2462,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
     </div>
     <div class="cr-exp-status" id="cr-work-exp-status"></div>
+    <div class="cr-wt-line">
+      <span class="cr-wt-label">📖 ชื่อผลงาน</span>
+      <span class="cr-wt-value empty" id="cr-work-title-value">— ยังไม่ได้ตั้งชื่อ —</span>
+      <button class="cr-exp-btn" onclick="crOpenWorkTitle()">✏️ ตั้ง / แก้ไขชื่อ</button>
+    </div>
     <div id="cr-work-body"></div>
     <h4 style="margin:16px 0 8px;color:#1e293b;font-size:15px;">💬 คอมเมนต์ถึงนักเรียน (ส่งแบบสด)</h4>
     <div class="cr-cmt-list" id="cr-work-comments"></div>
@@ -2469,6 +2492,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     <p class="cr-sub" id="cr-inbox-sub"></p>
     <div class="cr-cmt-list" id="cr-inbox-list" style="max-height:320px;"></div>
     <button class="cr-btn cr-btn-ghost" onclick="crCloseModal('crInboxModal')">ปิด</button>
+  </div>
+</div>
+
+<!-- ตั้ง/แก้ไขชื่อผลงาน (ใช้ได้ทั้งครูและนักเรียน) -->
+<div id="crWorkTitleModal" class="cr-overlay">
+  <div class="cr-card">
+    <h2 class="cr-title">📖 ตั้งชื่อผลงาน</h2>
+    <p class="cr-sub" id="cr-wt-sub"></p>
+    <label class="cr-label">ชื่อผลงาน / หัวข้อบทประพันธ์</label>
+    <input type="text" id="cr-wt-input" class="cr-input" maxlength="80"
+           placeholder="เช่น ความงามของธรรมชาติ"
+           onkeypress="if(event.key==='Enter')crSaveWorkTitle()">
+    <div class="cr-status" id="cr-wt-status"></div>
+    <button class="cr-btn cr-btn-primary" id="cr-wt-save" onclick="crSaveWorkTitle()">💾 บันทึกชื่อผลงาน</button>
+    <button class="cr-btn cr-btn-ghost" onclick="crCloseModal('crWorkTitleModal')">ยกเลิก</button>
   </div>
 </div>
 
@@ -2504,9 +2542,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     studentId: null,
     studentName: '',
     studentClass: '',
-    studentNo: ''
+    studentNo: '',
+    workTitle: ''
   };
-  var unsubStudents = null, unsubOneStudent = null, unsubComments = null, unsubMyComments = null;
+  var unsubStudents = null, unsubOneStudent = null, unsubComments = null, unsubMyComments = null, unsubMyDoc = null;
   var currentViewId = null;
   var studentsCache = {};
   var myComments = [];
@@ -2568,6 +2607,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     return { words: words, stanzas: st, filled: filled, total: total };
   }
 
+  // เทียบชื่อ-เลขที่แบบยืดหยุ่น (ไม่สนช่องว่าง ตัวพิมพ์ และเลขไทย/อารบิก)
+  function crNorm(s) {
+    return crArabic(String(s == null ? '' : s)).replace(/\s+/g, '').toLowerCase();
+  }
+
+  function crWorkDiffers(cur, prev) {
+    try {
+      if ((cur.stanzas || 0) !== (prev.stanzas || 0)) return true;
+      return JSON.stringify(cur.words || {}) !== JSON.stringify(prev.words || {});
+    } catch (e) { return true; }
+  }
+
+  // คืนบทประพันธ์จากคลาวด์กลับลงช่องกรอกบนหน้าจอ
+  function applyWorkToInputs(data) {
+    if (!data || !data.words) return;
+    try {
+      var st = data.stanzas || 2;
+      if (typeof totalStanzas !== 'undefined' && st !== totalStanzas) {
+        totalStanzas = st;
+        if (typeof buildVersesHTML === 'function') buildVersesHTML();
+        if (typeof updateTitles === 'function') updateTitles();
+      }
+    } catch (e) {}
+    document.querySelectorAll('.word-input').forEach(function (inp) {
+      inp.value = data.words['v' + inp.dataset.verse + '_p' + inp.dataset.position] || '';
+      try { if (typeof updateVerseFeedback === 'function') updateVerseFeedback(inp.dataset.verse); } catch (e) {}
+    });
+    try {
+      if (typeof updateResult === 'function') updateResult();
+      if (typeof checkAllSamphus === 'function') checkAllSamphus();
+      if (typeof saveData === 'function') saveData();
+    } catch (e) {}
+  }
+
   function renderWork(data) {
     var st = data.stanzas || 2, words = data.words || {}, html = '', any = false;
     for (var s = 1; s <= st; s++) {
@@ -2606,6 +2679,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       bar.innerHTML =
         '<span>🏫 ห้อง <b>' + esc(S.roomCode) + '</b></span>' +
         '<span class="cr-chip">🧑‍🎓 ' + esc(S.studentName) + (S.studentClass ? ' · ' + esc(S.studentClass) : '') + '</span>' +
+        '<span class="cr-wt-chip" onclick="crOpenWorkTitle()" title="คลิกเพื่อตั้ง/แก้ไขชื่อผลงาน">📖 ' +
+          (S.workTitle ? esc(S.workTitle) : 'ตั้งชื่อผลงาน') + ' ✏️</span>' +
         '<span class="cr-chip" id="cr-sync-chip">☁️ ซิงก์อัตโนมัติ</span>' +
         '<button class="cr-mini-btn danger" onclick="crLeaveRoom()">ออกจากห้อง</button>';
     } else {
@@ -2758,6 +2833,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     var s = studentsCache[id] || {};
     $('cr-work-name').textContent = '🧑‍🎓 ' + (s.name || 'นักเรียน');
     $('cr-work-meta').textContent = (s.cls ? 'ชั้น ' + s.cls + ' ' : '') + (s.no ? 'เลขที่ ' + s.no : '');
+    crRenderWorkTitleLine(s.workTitle || '');
     $('cr-work-body').innerHTML = renderWork(s);
     $('cr-cmt-status').textContent = '';
     $('cr-cmt-input').value = '';
@@ -2771,6 +2847,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!doc.exists || currentViewId !== id) return;
       var data = doc.data();
       studentsCache[id] = data;
+      crRenderWorkTitleLine(data.workTitle || '');
       $('cr-work-body').innerHTML = renderWork(data);
       $('cr-work-meta').textContent =
         (data.cls ? 'ชั้น ' + data.cls + ' · ' : '') + (data.no ? 'เลขที่ ' + data.no + ' · ' : '') +
@@ -2879,22 +2956,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     var d = db_();
     if (!d || !code) { st.className = 'cr-status cr-err'; st.textContent = 'เชื่อมต่อห้องเรียนไม่ได้'; return; }
 
-    btn.disabled = true; btn.textContent = '⏳ กำลังเข้าห้อง...';
+    btn.disabled = true; btn.textContent = '⏳ กำลังตรวจสอบรายชื่อ...';
     try {
-      var sid = 'st_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
-      var work = collectWork();
-      await d.collection(CR_ROOMS).doc(code).collection('students').doc(sid).set({
-        name: name, cls: cls, no: no,
-        joinedAt: Date.now(), updatedAt: Date.now(),
-        stanzas: work.stanzas, words: work.words, filled: work.filled, total: work.total
+      var col = d.collection(CR_ROOMS).doc(code).collection('students');
+
+      // ---- ค้นหาผลงานเดิมของนักเรียนคนนี้ (ชื่อ + เลขที่ ตรงกัน) ----
+      var key = crNorm(name) + '|' + crNorm(no);
+      var found = null;
+      var snap = await col.get();
+      snap.forEach(function (doc) {
+        if (found) return;
+        var v = doc.data() || {};
+        if (crNorm(v.name) + '|' + crNorm(v.no) === key) found = { id: doc.id, data: v };
       });
+
+      var sid, prev = null;
+      if (found) {
+        sid = found.id; prev = found.data;
+        btn.textContent = '⏳ กำลังเรียกคืนผลงานเดิม...';
+        await col.doc(sid).set({
+          name: name, cls: cls, no: no, rejoinedAt: Date.now(), updatedAt: Date.now()
+        }, { merge: true });
+      } else {
+        sid = 'st_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
+        var work = collectWork();
+        await col.doc(sid).set({
+          name: name, cls: cls, no: no, workTitle: S.workTitle || '',
+          joinedAt: Date.now(), updatedAt: Date.now(),
+          stanzas: work.stanzas, words: work.words, filled: work.filled, total: work.total
+        });
+      }
+
       S.role = 'student'; S.roomCode = code; S.studentId = sid;
       S.studentName = name; S.studentClass = cls; S.studentNo = no;
+      if (prev) S.workTitle = prev.workTitle || '';
       pendingRoomCode = null;
       saveSession(); updateBadgeBar();
       crCloseModal('crStudentModal');
+
+      // ---- คืนบทประพันธ์เดิมกลับหน้าจอ ----
+      var restored = false;
+      if (prev && prev.words) {
+        var cur = collectWork();
+        var useCloud = true;
+        if (cur.filled > 0 && crWorkDiffers(cur, prev)) {
+          useCloud = confirm('พบผลงานเดิมของ "' + name + '" ในห้องนี้ (' + (prev.filled || 0) + ' คำ)\n\n' +
+            'กด "ตกลง" เพื่อเรียกคืนผลงานเดิมมาแต่งต่อ\n' +
+            'กด "ยกเลิก" เพื่อใช้ข้อความที่มีอยู่ในเครื่องนี้แทน');
+        }
+        if (useCloud) { applyWorkToInputs(prev); restored = true; }
+      }
+
       startStudentSync();
-      crToast('เข้าห้องเรียนสำเร็จ', 'สวัสดี ' + name + ' — เริ่มฝึกแต่งกาพย์ยานี ๑๑ ได้เลย ครูจะเห็นผลงานของคุณแบบเรียลไทม์', false);
+      if (restored) {
+        crToast('เรียกคืนผลงานเดิมแล้ว', 'ยินดีต้อนรับกลับมา ' + name + ' — ระบบนำบทประพันธ์เดิมกลับมาให้แล้ว แต่งต่อได้เลย', false);
+      } else {
+        crToast('เข้าห้องเรียนสำเร็จ', 'สวัสดี ' + name + ' — เริ่มฝึกแต่งกาพย์ยานี ๑๑ ได้เลย ครูจะเห็นผลงานของคุณแบบเรียลไทม์', false);
+      }
     } catch (e) {
       st.className = 'cr-status cr-err';
       st.textContent = 'เข้าห้องไม่สำเร็จ: ' + (e && e.message ? e.message : 'ผิดพลาด');
@@ -2978,6 +3096,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   function startStudentSync() {
     pushWork();
     listenMyComments();
+    listenMyDoc();
+  }
+
+  // ฟังชื่อผลงานของตัวเอง — ครูแก้ชื่อเมื่อไหร่ นักเรียนเห็นทันที
+  function listenMyDoc() {
+    var d = db_();
+    if (!d || S.role !== 'student' || !S.roomCode || !S.studentId) return;
+    if (unsubMyDoc) { try { unsubMyDoc(); } catch (e) {} }
+    unsubMyDoc = d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(S.studentId)
+      .onSnapshot(function (doc) {
+        if (!doc.exists) return;
+        var t = (doc.data() || {}).workTitle || '';
+        if (t !== S.workTitle) { S.workTitle = t; saveSession(); updateBadgeBar(); }
+      }, function () {});
   }
 
   // ---------- รับคอมเมนต์จากครูแบบเรียลไทม์ ----------
@@ -3098,18 +3230,66 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (e) {}
   }
 
+  // ---------- ชื่อผลงาน (แก้ไขได้ทั้งครูและนักเรียน) ----------
+  function crRenderWorkTitleLine(title) {
+    var el = $('cr-work-title-value');
+    if (!el) return;
+    if (title) { el.textContent = title; el.classList.remove('empty'); }
+    else { el.textContent = '— ยังไม่ได้ตั้งชื่อ —'; el.classList.add('empty'); }
+  }
+
+  window.crOpenWorkTitle = function () {
+    var isTeacher = (S.role === 'teacher');
+    if (isTeacher && !currentViewId) { alert('กรุณาเปิดผลงานนักเรียนก่อน'); return; }
+    if (!isTeacher && (!S.roomCode || !S.studentId)) { alert('กรุณาเข้าห้องเรียนก่อน'); return; }
+    var s = isTeacher ? (studentsCache[currentViewId] || {}) : null;
+    $('cr-wt-input').value = isTeacher ? (s.workTitle || '') : (S.workTitle || '');
+    $('cr-wt-sub').textContent = isTeacher
+      ? 'แก้ไขชื่อผลงานของ ' + (s.name || 'นักเรียน') + ' — นักเรียนจะเห็นการเปลี่ยนแปลงทันที'
+      : 'ชื่อผลงานจะแสดงบนไฟล์ Word และภาพที่บันทึก แก้ไขได้ตลอดเวลา';
+    $('cr-wt-status').textContent = '';
+    openModal('crWorkTitleModal');
+    setTimeout(function () { $('cr-wt-input').focus(); }, 200);
+  };
+
+  window.crSaveWorkTitle = async function () {
+    var title = $('cr-wt-input').value.trim();
+    var st = $('cr-wt-status'), btn = $('cr-wt-save');
+    var isTeacher = (S.role === 'teacher');
+    var sid = isTeacher ? currentViewId : S.studentId;
+    var d = db_();
+    if (!d || !sid || !S.roomCode) return;
+    btn.disabled = true;
+    st.className = 'cr-status'; st.textContent = '⏳ กำลังบันทึก...';
+    try {
+      await d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(sid)
+        .set({ workTitle: title, workTitleAt: Date.now() }, { merge: true });
+      if (isTeacher) {
+        if (studentsCache[sid]) studentsCache[sid].workTitle = title;
+        crRenderWorkTitleLine(title);
+      } else {
+        S.workTitle = title; saveSession(); updateBadgeBar();
+      }
+      crCloseModal('crWorkTitleModal');
+    } catch (e) {
+      st.className = 'cr-status cr-err';
+      st.textContent = 'บันทึกไม่สำเร็จ: ' + (e && e.message ? e.message : 'ผิดพลาด');
+    }
+    btn.disabled = false;
+  };
+
   // ---------- ออกจากห้อง ----------
   window.crLeaveRoom = function () {
     var msg = S.role === 'teacher'
       ? 'ต้องการออกจากห้องเรียนนี้หรือไม่? (ข้อมูลนักเรียนยังอยู่ในระบบ กลับเข้าได้ด้วยรหัสห้อง)'
       : 'ต้องการออกจากห้องเรียนหรือไม่? บทประพันธ์ในเครื่องจะยังอยู่เหมือนเดิม';
     if (!confirm(msg)) return;
-    [unsubStudents, unsubOneStudent, unsubComments, unsubMyComments].forEach(function (u) {
+    [unsubStudents, unsubOneStudent, unsubComments, unsubMyComments, unsubMyDoc].forEach(function (u) {
       if (u) { try { u(); } catch (e) {} }
     });
-    unsubStudents = unsubOneStudent = unsubComments = unsubMyComments = null;
+    unsubStudents = unsubOneStudent = unsubComments = unsubMyComments = unsubMyDoc = null;
     S.role = null; S.roomCode = null; S.studentId = null; S.studentName = '';
-    S.studentClass = ''; S.studentNo = ''; S.roomTitle = ''; S.roomTeacher = '';
+    S.studentClass = ''; S.studentNo = ''; S.roomTitle = ''; S.roomTeacher = ''; S.workTitle = '';
     myComments = []; studentsCache = {};
     clearSession(); updateBadgeBar(); updateBell();
     ['crDashModal', 'crWorkModal', 'crInboxModal', 'crQrModal'].forEach(crCloseModal);
@@ -3168,6 +3348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       var s = studentsCache[id] || {};
       return {
         id: id, name: s.name || 'ไม่ระบุชื่อ', cls: s.cls || '', no: s.no || '',
+        workTitle: s.workTitle || '',
         words: s.words || {}, stanzas: s.stanzas || 2,
         filled: s.filled || 0, total: s.total || 0, joinedAt: s.joinedAt || 0
       };
@@ -3298,6 +3479,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ctx.fillStyle = '#d9b44a'; ctx.font = '400 22px Prompt'; ctx.fillText('✦', centerX, y - 8);
 
     var sub = [];
+    if (meta.topic && meta.roomTitle) sub.push(meta.roomTitle);
     if (meta.teacher) sub.push('ครูผู้สอน ' + meta.teacher);
     if (meta.roomCode) sub.push('ห้อง ' + meta.roomCode);
     if (sub.length) {
@@ -3452,7 +3634,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       { align: 'center', before: 160 });
   }
   function dSummaryTable(items) {
-    var w = [800, 3600, 1400, 1200, 1700];
+    var w = [600, 2350, 2350, 900, 800, 1300];
     function cell(t, o, cw) {
       o = o || {};
       return '<w:tc><w:tcPr><w:tcW w:w="' + cw + '" w:type="dxa"/>' +
@@ -3461,13 +3643,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     var head = '<w:tr><w:trPr><w:tblHeader/></w:trPr>' +
       cell('ลำดับ', { bold: 1, shade: 1 }, w[0]) + cell('ชื่อ - สกุล', { bold: 1, shade: 1 }, w[1]) +
-      cell('ชั้น', { bold: 1, shade: 1 }, w[2]) + cell('เลขที่', { bold: 1, shade: 1 }, w[3]) +
-      cell('ความคืบหน้า', { bold: 1, shade: 1 }, w[4]) + '</w:tr>';
+      cell('ชื่อผลงาน', { bold: 1, shade: 1 }, w[2]) + cell('ชั้น', { bold: 1, shade: 1 }, w[3]) +
+      cell('เลขที่', { bold: 1, shade: 1 }, w[4]) + cell('ความคืบหน้า', { bold: 1, shade: 1 }, w[5]) + '</w:tr>';
     var body = items.map(function (it, i) {
       var pct = it.total ? Math.round(it.filled / it.total * 100) : 0;
       return '<w:tr>' + cell(String(i + 1), null, w[0]) + cell(it.name, { align: 'left' }, w[1]) +
-        cell(it.cls || '-', null, w[2]) + cell(it.no || '-', null, w[3]) +
-        cell(it.filled + '/' + it.total + '  (' + pct + '%)', null, w[4]) + '</w:tr>';
+        cell(it.workTitle || '-', { align: 'left' }, w[2]) + cell(it.cls || '-', null, w[3]) +
+        cell(it.no || '-', null, w[4]) +
+        cell(it.filled + '/' + it.total + '  (' + pct + '%)', null, w[5]) + '</w:tr>';
     }).join('');
     return '<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:jc w:val="center"/>' + dBorders('single') + '</w:tblPr>' +
       '<w:tblGrid>' + w.map(function (x) { return '<w:gridCol w:w="' + x + '"/>'; }).join('') + '</w:tblGrid>' +
@@ -3475,8 +3658,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   function dStudentBlock(item, meta, colorMode) {
     var st = crWorkToStanzas(item, colorMode), out = '';
-    out += dPara(dRun(meta.roomTitle, { bold: true, size: 36 }), { align: 'center', after: 60 });
+    out += dPara(dRun(item.workTitle || meta.roomTitle, { bold: true, size: 36 }), { align: 'center', after: 60 });
     var sub = [];
+    if (item.workTitle && meta.roomTitle) sub.push(meta.roomTitle);
     if (meta.teacher) sub.push('ครูผู้สอน ' + meta.teacher);
     if (meta.roomCode) sub.push('รหัสห้อง ' + meta.roomCode);
     if (sub.length) out += dPara(dRun(sub.join('   ·   '), { size: 28, color: '595959' }), { align: 'center', after: 120 });
@@ -3549,6 +3733,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!s) return null;
     return {
       name: s.name || 'นักเรียน', cls: s.cls || '', no: s.no || '',
+      workTitle: s.workTitle || '',
       words: s.words || {}, stanzas: s.stanzas || 2,
       filled: s.filled || 0, total: s.total || 0
     };
@@ -3579,7 +3764,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     crBusy(ids, true); crStat('cr-work-exp-status', '⏳ กำลังสร้างภาพ...');
     try {
       var m = crRoomMeta();
-      m.name = it.name; m.cls = it.cls; m.no = it.no;
+      m.name = it.name; m.cls = it.cls; m.no = it.no; m.topic = it.workTitle || '';
       var blob = await crBuildImageBlob(it, m, crColorOn);
       if (!blob) { crStat('cr-work-exp-status', '⚠️ นักเรียนยังไม่ได้เริ่มแต่ง', true); crBusy(ids, false); return; }
       crDownloadBlob(blob, 'กาพย์ยานี๑๑_' + crFileLabel(it) + '.png');
@@ -3620,7 +3805,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       crStat('cr-dash-exp-status', '⏳ กำลังสร้างภาพ ' + (i + 1) + '/' + list.length + ' — ' + it.name);
       try {
         var m = crRoomMeta();
-        m.name = it.name; m.cls = it.cls; m.no = it.no;
+        m.name = it.name; m.cls = it.cls; m.no = it.no; m.topic = it.workTitle || '';
         var blob = await crBuildImageBlob(it, m, crColorOn);
         if (blob) { crDownloadBlob(blob, 'กาพย์ยานี๑๑_' + crFileLabel(it) + '.png'); ok++; }
         else skip++;
