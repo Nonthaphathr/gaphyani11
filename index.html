@@ -843,34 +843,6 @@
       </button>
     </div>
 
-    <!-- Cloud Sync Section -->
-    <div style="border-top:1px solid #e5e7eb;margin:10px 0;padding-top:14px;">
-      <p style="font-size:13px;font-weight:700;color:#374151;margin:0 0 8px;">☁️ บันทึกการตั้งค่าบน Cloud</p>
-      <p style="font-size:11px;color:#6b7280;margin:0 0 10px;line-height:1.5;">บันทึกแล้วแชร์ลิงก์ให้ทุกคนเห็นการตั้งค่าเดียวกันในทุกอุปกรณ์</p>
-
-      <label class="form-label">🔑 Config ID (ว่างไว้ = สร้างใหม่อัตโนมัติ)</label>
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <input type="text" id="cloud-config-id" class="form-input" style="margin-bottom:0;flex:1;"
-          placeholder="เช่น my-school-config">
-        <button onclick="generateConfigId()"
-          style="padding:10px 14px;background:#f3f4f6;border:1.5px solid #d1d5db;border-radius:10px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:'Prompt','Kanit',sans-serif;color:#374151;">
-          🎲 สุ่ม
-        </button>
-      </div>
-
-      <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <button onclick="saveToCloud()" id="cloud-save-btn"
-          style="flex:1;padding:10px;background:#10b981;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Prompt','Kanit',sans-serif;transition:all 0.2s;">
-          ☁️ บันทึกขึ้น Cloud
-        </button>
-        <button onclick="copyCloudLink()" id="cloud-copy-btn"
-          style="flex:1;padding:10px;background:#6366f1;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Prompt','Kanit',sans-serif;transition:all 0.2s;">
-          📋 คัดลอกลิงก์
-        </button>
-      </div>
-      <div id="cloud-status" style="font-size:12px;color:#6b7280;text-align:center;min-height:18px;"></div>
-    </div>
-
     <div class="modal-btn-row">
       <button class="modal-btn" style="background:#fef2f2;color:#ef4444;border:1px solid #fecaca;" onclick="lockSettings()">🔒 ล็อกตั้งค่า</button>
       <button class="modal-btn modal-btn-cancel" onclick="closeSettings()">ยกเลิก</button>
@@ -916,7 +888,7 @@
   <div class="mini-modal-box qr-box">
     <p class="mini-modal-title">📱 QR Code ลิงก์ระบบ</p>
     <img id="qr-image" src="" alt="QR Code" width="220" height="220">
-    <p class="mini-modal-body" style="margin-bottom:6px;">สแกนเพื่อเปิดระบบนี้ในอุปกรณ์อื่น<br>พร้อมการตั้งค่า Cloud ปัจจุบัน</p>
+    <p class="mini-modal-body" style="margin-bottom:6px;">สแกนเพื่อเปิดระบบนี้ในอุปกรณ์อื่น<br>ระบบจะใช้การตั้งค่าล่าสุดโดยอัตโนมัติ</p>
     <p class="qr-url" id="qr-url-text"></p>
     <div class="modal-btn-row" style="margin-top:14px;">
       <button class="modal-btn modal-btn-cancel" onclick="closeQrModal()">ปิด</button>
@@ -1621,11 +1593,13 @@ function _applySettings(s) {
   if (tourRadio) tourRadio.checked = true;
 }
 
-function saveSettings() {
+async function saveSettings() {
   const s = _collectSettingsObj();
   _applySettings(s);
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
   closeSettings();
+  // ซิงก์ขึ้น Cloud อัตโนมัติ เพื่อให้ทุกอุปกรณ์เห็นการตั้งค่าล่าสุดเหมือนกัน
+  await pushSettingsToCloud(s);
 }
 
 function loadSettings() {
@@ -1634,67 +1608,34 @@ function loadSettings() {
   try { _applySettings(JSON.parse(raw)); } catch(e) {}
 }
 
-// ===== CLOUD SYNC (Firestore) =====
-function generateConfigId() {
-  const id = Math.random().toString(36).substring(2, 10);
-  document.getElementById('cloud-config-id').value = id;
-}
+// ===== CLOUD SYNC (Firestore) — ซิงก์อัตโนมัติ ใช้ค่าเดียวกันทุกอุปกรณ์ =====
+const GLOBAL_CONFIG_ID = 'global';
 
-async function saveToCloud() {
-  let configId = document.getElementById('cloud-config-id').value.trim();
-  if (!configId) { generateConfigId(); configId = document.getElementById('cloud-config-id').value; }
-
-  const btn = document.getElementById('cloud-save-btn');
-  const status = document.getElementById('cloud-status');
-  btn.textContent = '⏳ กำลังบันทึก...'; btn.disabled = true;
-  status.textContent = '';
-
-  const settingsObj = _collectSettingsObj();
-  settingsObj.updatedAt = new Date().toISOString();
-
+async function pushSettingsToCloud(s) {
   try {
-    await db.collection('configs').doc(configId).set(settingsObj);
-    localStorage.setItem('kaph_yani_cloud_id', configId);
-    status.style.color = '#10b981';
-    status.textContent = `✅ บันทึกแล้ว! Config ID: ${configId}`;
-    btn.textContent = '✅ บันทึกแล้ว!';
-    setTimeout(() => { btn.textContent = '☁️ บันทึกขึ้น Cloud'; btn.disabled = false; }, 2500);
-  } catch(e) {
-    status.style.color = '#ef4444';
-    status.textContent = `❌ ผิดพลาด: ${e.message}`;
-    btn.textContent = '☁️ บันทึกขึ้น Cloud'; btn.disabled = false;
+    const payload = Object.assign({}, s, { updatedAt: new Date().toISOString() });
+    await db.collection('configs').doc(GLOBAL_CONFIG_ID).set(payload);
+    return true;
+  } catch (e) {
+    console.warn('Cloud save error:', e);
+    return false;
   }
 }
 
 async function loadFromCloud(configId) {
   try {
-    const doc = await db.collection('configs').doc(configId).get();
+    const doc = await db.collection('configs').doc(configId || GLOBAL_CONFIG_ID).get();
     if (doc.exists) {
       const data = doc.data();
       _applySettings(data);
-      document.getElementById('cloud-config-id').value = configId;
-      localStorage.setItem('kaph_yani_cloud_id', configId);
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
       return true;
     }
     return false;
-  } catch(e) {
+  } catch (e) {
     console.warn('Cloud load error:', e);
     return false;
   }
-}
-
-function copyCloudLink() {
-  const configId = document.getElementById('cloud-config-id').value.trim() || localStorage.getItem('kaph_yani_cloud_id') || '';
-  if (!configId) { alert('กรุณาบันทึก Config ขึ้น Cloud ก่อน'); return; }
-  const url = `${location.origin}${location.pathname}?config=${configId}`;
-  navigator.clipboard.writeText(url).then(() => {
-    const btn = document.getElementById('cloud-copy-btn');
-    btn.textContent = '✅ คัดลอกแล้ว!';
-    document.getElementById('cloud-status').style.color = '#6366f1';
-    document.getElementById('cloud-status').textContent = url;
-    setTimeout(() => { btn.textContent = '📋 คัดลอกลิงก์'; }, 2000);
-  }).catch(() => alert('ไม่สามารถคัดลอกได้ โปรดคัดลอกด้วยตนเอง: ' + url));
 }
 
 // ===== LARGE TEXT VIEW =====
@@ -1795,10 +1736,7 @@ function lockSettings() {
 let qrCurrentUrl = '';
 
 function openQrModal() {
-  const configId = localStorage.getItem('kaph_yani_cloud_id');
-  const url = configId
-    ? `${location.origin}${location.pathname}?config=${configId}`
-    : `${location.origin}${location.pathname}`;
+  const url = `${location.origin}${location.pathname}`;
   qrCurrentUrl = url;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(url)}&format=png&bgcolor=ffffff`;
   document.getElementById('qr-image').src = qrSrc;
@@ -2268,23 +2206,9 @@ function maybeStartTour() {
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', async () => {
-  // Check URL for cloud config param first
-  const urlParams = new URLSearchParams(location.search);
-  const cloudConfigId = urlParams.get('config');
-
-  if (cloudConfigId) {
-    // Load from cloud, show loading indicator
-    const titleEl = document.getElementById('app-title');
-    const origTitle = titleEl.textContent;
-    titleEl.textContent = '⏳ กำลังโหลดการตั้งค่า...';
-    const loaded = await loadFromCloud(cloudConfigId);
-    if (!loaded) { titleEl.textContent = origTitle; }
-  } else {
-    // Restore saved cloud ID into field if exists
-    const savedId = localStorage.getItem('kaph_yani_cloud_id');
-    if (savedId) document.getElementById('cloud-config-id').value = savedId;
-    loadSettings();
-  }
+  // แสดงค่าที่เคยบันทึกไว้ในเครื่องก่อน (กันหน้าจอกระพริบ) แล้วดึงค่าล่าสุดจาก Cloud ทับ
+  loadSettings();
+  await loadFromCloud(GLOBAL_CONFIG_ID);
 
   buildVersesHTML();
   loadData();
