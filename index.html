@@ -892,7 +892,7 @@
       <span>👁️</span>
       <span id="view-count" class="counter-badge">...</span>
     </div>
-    <p style="font-size:12px;margin-top:5px;color:#95a5a6;">(Powered by CounterAPI)</p>
+    <p style="font-size:12px;margin-top:5px;color:#95a5a6;">(นับจากระบบของเราเอง)</p>
   </div>
 </div>
 
@@ -2890,6 +2890,50 @@ document.addEventListener('keydown', e => {
 });
 
 
+// ============================================================
+// ===== ตัวนับผู้เข้าชม (เก็บบน Firestore ของเราเอง) =====
+// ============================================================
+// ยอดเดิมจาก CounterAPI ใส่ตรงนี้ได้ เพื่อให้ตัวเลขนับต่อจากของเดิม
+const VIEW_COUNT_OFFSET = 0;
+const VIEW_DOC_ID = '_visits';
+const VIEW_SESSION_KEY = 'kaph_yani_counted_this_session';
+
+function _showViewCount(n) {
+  const el = document.getElementById('view-count');
+  if (!el) return;
+  el.textContent = (typeof n === 'number' && isFinite(n))
+    ? (n + VIEW_COUNT_OFFSET).toLocaleString('th-TH')
+    : '—';
+}
+
+async function initViewCounter() {
+  _showViewCount(null);                     // แสดง — ไว้ก่อน กันช่องว่าง
+  if (!db) return;                          // ไม่มี Firestore ก็ไม่ต้องนับ
+
+  // นับ 1 ครั้งต่อ 1 แท็บ ไม่ให้รีเฟรชรัว ๆ แล้วยอดพุ่ง
+  let already = false;
+  try { already = sessionStorage.getItem(VIEW_SESSION_KEY) === '1'; } catch (e) {}
+
+  const ref = db.collection('configs').doc(VIEW_DOC_ID);
+  try {
+    let doc = await ref.get();
+    // นับเพิ่มเมื่อยังไม่เคยนับในแท็บนี้ หรือยังไม่เคยมีเอกสารตัวนับมาก่อน
+    if (!already || !doc.exists) {
+      await ref.set(
+        { count: firebase.firestore.FieldValue.increment(1), updatedAt: Date.now() },
+        { merge: true }
+      );
+      try { sessionStorage.setItem(VIEW_SESSION_KEY, '1'); } catch (e) {}
+      doc = await ref.get();
+    }
+    const n = doc.exists ? (doc.data() || {}).count : null;
+    _showViewCount(typeof n === 'number' ? n : null);
+  } catch (e) {
+    console.warn('ตัวนับผู้เข้าชมไม่พร้อมใช้งาน:', e);
+    _showViewCount(null);
+  }
+}
+
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', async () => {
   // แสดงค่าที่เคยบันทึกไว้ในเครื่องก่อน (กันหน้าจอกระพริบ)
@@ -2901,10 +2945,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ดึงค่าล่าสุดจาก Cloud มาทับแบบเบื้องหลัง — เน็ตช้าก็ไม่ค้างทั้งหน้า
   loadFromCloud(GLOBAL_CONFIG_ID);
 
-  fetch('https://api.counterapi.dev/v1/kaph-yani-tool/visits/up')
-    .then(r => r.json())
-    .then(d => { document.getElementById('view-count').textContent = d.count; })
-    .catch(() => { document.getElementById('view-count').textContent = '—'; });
+  initViewCounter();
 
   // สร้างชุดสีสำเร็จรูปในหน้าตั้งค่า
   buildThemeGrid();
