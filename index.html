@@ -658,6 +658,15 @@
 .wt-step2 .wt-step{width:30px;height:30px;font-size:15px;background:#16a34a;}
 @media(max-width:600px){.wt-card{padding:12px;gap:10px}.wt-step{width:34px;height:34px;font-size:16px}}
 
+/* ---------- ปุ่ม X ปิด modal ห้องเรียน ---------- */
+.cr-card{position:relative;}
+.cr-x{
+  position:sticky;top:0;float:right;z-index:3;margin:-14px -10px 0 8px;width:38px;height:38px;border:none;
+  border-radius:50%;background:#f1f5f9;color:#475569;font-size:22px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;transition:.15s;
+}
+.cr-x:hover{background:#fee2e2;color:#dc2626;transform:scale(1.08);}
+
 /* ---------- Overlay ทั่วไปของโหมดห้องเรียน ---------- */
 .cr-overlay{
   display:none; position:fixed; inset:0; z-index:12000;
@@ -4983,6 +4992,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     crSyncTitleInput();
   }
 
+  // ---------- ปุ่ม X ปิดทุก modal ของห้องเรียน ----------
+  function crInjectCloseX() {
+    document.querySelectorAll('.cr-overlay').forEach(function (ov) {
+      var card = ov.querySelector('.cr-card');
+      if (!card || card.querySelector('.cr-x')) return;
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'cr-x'; b.setAttribute('aria-label', 'ปิด'); b.title = 'ปิด';
+      b.innerHTML = '&times;';
+      b.onclick = function () {
+        if (ov.id === 'crWorkModal' && window.crCloseWork) window.crCloseWork();
+        else crCloseModal(ov.id);
+      };
+      card.insertBefore(b, card.firstChild);
+    });
+  }
+
   // ---------- ปุ่มเปิดโหมดห้องเรียน ----------
   function injectButton() {
     if ($('btn-classroom')) return;
@@ -5001,6 +5026,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ---------- เริ่มระบบ ----------
   function boot() {
+    crInjectCloseX();
     crInitTitleInput();
     injectButton();
     loadSeen();
