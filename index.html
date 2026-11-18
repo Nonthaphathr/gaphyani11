@@ -194,6 +194,20 @@
 
     .word-label { font-size: 12px; font-weight: 500; color: #7f8c8d; }
 
+    /* ===== คำหลายพยางค์ (แยกพยางค์ในช่องเดียว) ===== */
+    .word-group[data-span="2"] { grid-column: span 2; }
+    .word-group[data-span="3"] { grid-column: span 3; }
+    .word-group[data-absorbed="1"] { display: none !important; }
+    .word-input.span-cell { background: #f0f9ff; }
+    .span-btn {
+      display: none; border: 1px dashed #0ea5e9; background: #f0f9ff; color: #0369a1;
+      font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; cursor: pointer;
+      font-family: 'Prompt','Kanit',sans-serif; line-height: 1.5;
+    }
+    .span-btn:hover { background: #e0f2fe; }
+    .span-btn.on { border-style: solid; background: #0ea5e9; color: #fff; }
+    .span-btn.show { display: inline-block; }
+
     .verse-feedback {
       padding: 12px;
       border-radius: 8px;
@@ -605,6 +619,8 @@
       .word-inputs::-webkit-scrollbar { height: 4px; }
       .word-inputs::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
       .word-group { flex-shrink: 0; min-width: 60px; max-width: 70px; }
+      .word-group[data-span="2"] { min-width: 126px; max-width: 146px; }
+      .word-group[data-span="3"] { min-width: 192px; max-width: 222px; }
       .word-input { font-size: 13px; padding: 8px 3px; width: 100%; }
       .samphus-indicator { font-size: 8px; padding: 1px 4px; }
       .mini-modal-box { max-width: 95vw; padding: 18px; }
@@ -1110,6 +1126,28 @@
       <button class="modal-btn modal-btn-cancel" onclick="multiWordCancel()">🙈 อุ้ย! เดี๋ยวแก้ใหม่</button>
       <button class="modal-btn modal-btn-primary" onclick="multiWordConfirm()">✅ แน่ใจ</button>
     </div>
+    <div class="modal-btn-row" style="margin-top:8px;">
+      <button class="modal-btn" style="background:#0ea5e9;color:#fff;" onclick="multiWordSplit(2)">✂️ แยก 2 พยางค์</button>
+      <button class="modal-btn" style="background:#0284c7;color:#fff;" onclick="multiWordSplit(3)">✂️ แยก 3 พยางค์</button>
+    </div>
+    <p class="mini-modal-body" style="font-size:12px;margin-top:10px;color:#64748b;">
+      💡 คำที่พยางค์หน้าเสียงเบา เช่น ตลาด สุขา สะอาด ประทับ — กด "แยกพยางค์" แล้วช่องนี้จะนับเป็นหลายพยางค์ ช่องถัดไปจะรวมเข้ากัน
+    </p>
+  </div>
+</div>
+
+<!-- ===== SPAN PICK MODAL (เลือกจำนวนพยางค์ของคำในช่อง) ===== -->
+<div id="spanPickModal" class="modal-overlay">
+  <div class="mini-modal-box">
+    <p class="mini-modal-title">✂️ แยกพยางค์</p>
+    <p class="mini-modal-body" id="span-pick-body">คำนี้มีกี่พยางค์?</p>
+    <div class="modal-btn-row">
+      <button class="modal-btn" id="span-pick-2" style="background:#0ea5e9;color:#fff;" onclick="spanPick(2)">2 พยางค์</button>
+      <button class="modal-btn" id="span-pick-3" style="background:#0284c7;color:#fff;" onclick="spanPick(3)">3 พยางค์</button>
+    </div>
+    <div class="modal-btn-row" style="margin-top:8px;">
+      <button class="modal-btn modal-btn-cancel" onclick="closeSpanPick()">ยกเลิก</button>
+    </div>
   </div>
 </div>
 
@@ -1484,6 +1522,7 @@ function hasMultipleSyllables(word) {
 
 function checkMultiSyllable(inputEl) {
   const word = inputEl.value.trim();
+  if (getSpan(inputEl) > 1) return;   // ระบุเป็นคำหลายพยางค์แล้ว
   if (!word || !hasMultipleSyllables(word)) return;
   suspiciousInput = inputEl;
   inputEl.classList.add('multi-word-warn');
@@ -1510,6 +1549,150 @@ function multiWordCancel() {
   document.getElementById('multiWordModal').classList.remove('active');
   suspiciousInput = null;
 }
+
+
+// ===== คำหลายพยางค์ในช่องเดียว (แยก 2 / 3 พยางค์) =====
+// ช่องที่ระบุ: data-span="n" และช่องถัดไป n-1 ช่องถูกซ่อน (data-absorbed="1", ค่าว่าง)
+function getSpan(inp) { return parseInt(inp.dataset.span || '1', 10) || 1; }
+function isAbsorbed(inp) { return inp.dataset.absorbed === '1'; }
+function verseInputs(verse) { return Array.from(document.querySelectorAll(`.word-input[data-verse="${verse}"]`)); }
+
+function spanVisual(inp) {
+  // ปรับหน้าตาช่อง: สี/ป้ายสัมผัสที่ถูกรวมเข้ามา, ป้ายชื่อ "คำที่ a–b", ปุ่ม
+  const grp = inp.parentElement, n = getSpan(inp), verse = inp.dataset.verse, pos = parseInt(inp.dataset.position, 10);
+  grp.querySelectorAll('.span-ind').forEach(e => e.remove());
+  inp.className = inp.dataset.basecls + (n > 1 ? ' span-cell' : '');
+  if (n > 1) {
+    grp.dataset.span = String(n);
+    const all = verseInputs(verse);
+    for (let k = 1; k < n; k++) {
+      const a = all[pos - 1 + k];
+      if (!a || a.dataset.samphus === 'none') continue;
+      inp.classList.add('samphus-' + a.dataset.samphus);
+      const ind = a.parentElement.querySelector('.samphus-indicator');
+      if (ind) { const c = ind.cloneNode(true); c.classList.add('span-ind'); grp.appendChild(c); }
+    }
+  } else { delete grp.dataset.span; }
+  const lab = grp.querySelector('.word-label');
+  if (lab) lab.textContent = n > 1 ? `คำที่ ${pos}–${pos + n - 1}` : `คำที่ ${pos}`;
+  spanRefreshBtn(inp);
+}
+
+function spanRefreshBtn(inp) {
+  const btn = inp.parentElement.querySelector('.span-btn'); if (!btn) return;
+  const n = getSpan(inp), len = verseInputs(inp.dataset.verse).length, pos = parseInt(inp.dataset.position, 10);
+  const has = inp.value.trim().length > 0;
+  if (n > 1) { btn.textContent = `↩ ยกเลิกแยก (${n} พยางค์)`; btn.classList.add('on', 'show'); }
+  else {
+    btn.textContent = '✂️ แยกพยางค์'; btn.classList.remove('on');
+    btn.classList.toggle('show', has && pos < len && !isAbsorbed(inp));
+  }
+}
+
+function spanReset(inp) {
+  const n = getSpan(inp), all = verseInputs(inp.dataset.verse), pos = parseInt(inp.dataset.position, 10);
+  for (let k = 1; k < n; k++) {
+    const a = all[pos - 1 + k]; if (!a) continue;
+    delete a.dataset.absorbed; delete a.parentElement.dataset.absorbed;
+    spanRefreshBtn(a);
+  }
+  delete inp.dataset.span;
+  spanVisual(inp);
+}
+
+// silent=true: ใช้ตอนโหลดข้อมูล (ไม่ถามยืนยัน)
+function spanApply(inp, n, silent) {
+  const all = verseInputs(inp.dataset.verse), pos = parseInt(inp.dataset.position, 10);
+  if (getSpan(inp) > 1) spanReset(inp);
+  if (n < 2 || pos - 1 + n > all.length) return false;
+  const next = all.slice(pos, pos - 1 + n);
+  if (!silent && next.some(a => a.value.trim())) {
+    if (!confirm('ช่องถัดไปมีคำอยู่แล้ว ถ้าแยกพยางค์ คำในช่องนั้นจะถูกลบ ต้องการดำเนินการต่อหรือไม่?')) return false;
+  }
+  next.forEach(a => {
+    if (getSpan(a) > 1) spanReset(a);
+    a.value = ''; a.dataset.absorbed = '1'; a.parentElement.dataset.absorbed = '1';
+  });
+  inp.dataset.span = String(n);
+  spanVisual(inp);
+  next.forEach(a => spanRefreshBtn(a));
+  return true;
+}
+
+function spanAfterChange(inp) {
+  updateVerseFeedback(inp.dataset.verse); updateResult(); checkAllSamphus(); saveData();
+}
+
+function spanBtnClick(btn) {
+  const inp = btn.parentElement.querySelector('.word-input');
+  if (!inp) return;
+  if (getSpan(inp) > 1) { spanReset(inp); spanAfterChange(inp); return; }
+  openSpanPick(inp);
+}
+
+let spanPickTarget = null;
+function openSpanPick(inp) {
+  spanPickTarget = inp;
+  const room = verseInputs(inp.dataset.verse).length - parseInt(inp.dataset.position, 10) + 1;
+  document.getElementById('span-pick-body').innerHTML = `คำ "<strong>${inp.value.trim()}</strong>" มีกี่พยางค์?`;
+  document.getElementById('span-pick-2').style.display = room >= 2 ? '' : 'none';
+  document.getElementById('span-pick-3').style.display = room >= 3 ? '' : 'none';
+  document.getElementById('spanPickModal').classList.add('active');
+}
+function closeSpanPick() { document.getElementById('spanPickModal').classList.remove('active'); spanPickTarget = null; }
+function spanPick(n) {
+  const inp = spanPickTarget; closeSpanPick();
+  if (inp && spanApply(inp, n, false)) spanAfterChange(inp);
+}
+function multiWordSplit(n) {
+  const inp = suspiciousInput;
+  document.getElementById('multiWordModal').classList.remove('active');
+  suspiciousInput = null;
+  if (!inp) return;
+  inp.classList.remove('multi-word-warn');
+  const room = verseInputs(inp.dataset.verse).length - parseInt(inp.dataset.position, 10) + 1;
+  if (room < n) { alert('ช่องที่เหลือในวรรคนี้ไม่พอสำหรับคำ ' + n + ' พยางค์ ลองย้ายคำไปช่องก่อนหน้า'); return; }
+  if (spanApply(inp, n, false)) spanAfterChange(inp);
+}
+
+// หาช่อง/คำที่ครอบคลุมตำแหน่งสัมผัส (ถ้าตำแหน่งนั้นถูกรวมเข้ากับคำหลายพยางค์)
+function rhymeCell(verse, position) {
+  const all = verseInputs(verse);
+  let inp = all[position - 1]; if (!inp) return null;
+  let startsAtPos = false;
+  if (isAbsorbed(inp)) {
+    for (let i = position - 2; i >= 0; i--) { if (!isAbsorbed(all[i])) { inp = all[i]; break; } }
+  } else if (getSpan(inp) > 1) startsAtPos = true;
+  return { input: inp, word: inp.value.trim(), startsAtPos };
+}
+
+// เก็บ/คืนข้อมูลทุกช่อง (รวมข้อมูลการแยกพยางค์ key: v{verse}_p{pos}_sp)
+function collectInputData() {
+  const data = {};
+  document.querySelectorAll('.word-input').forEach(inp => {
+    const k = `v${inp.dataset.verse}_p${inp.dataset.position}`;
+    data[k] = inp.value;
+    if (getSpan(inp) > 1) data[k + '_sp'] = String(getSpan(inp));
+  });
+  return data;
+}
+function restoreInputData(data) {
+  data = data || {};
+  const inputs = Array.from(document.querySelectorAll('.word-input'));
+  inputs.forEach(inp => { if (getSpan(inp) > 1) spanReset(inp); });
+  inputs.forEach(inp => {
+    const k = `v${inp.dataset.verse}_p${inp.dataset.position}`;
+    inp.value = data[k] || '';
+  });
+  inputs.forEach(inp => {
+    const n = parseInt(data[`v${inp.dataset.verse}_p${inp.dataset.position}_sp`] || '1', 10);
+    if (n > 1 && inp.value.trim()) spanApply(inp, n, true);
+  });
+  inputs.forEach(inp => spanRefreshBtn(inp));
+}
+window.yaniCollectData = collectInputData;
+window.yaniRestoreData = restoreInputData;
+window.yaniGetSpan = getSpan;
 
 // ===== BUILD HTML =====
 // กาพย์ยานี 11 สัมผัสที่ถูกต้อง:
@@ -1560,6 +1743,8 @@ function buildVersesHTML() {
 
   document.querySelectorAll('.word-input').forEach(input => {
     input.addEventListener('input', function () {
+      if (!this.value.trim() && getSpan(this) > 1) spanReset(this);
+      spanRefreshBtn(this);
       updateVerseFeedback(this.dataset.verse);
       updateResult();
       checkAllSamphus();
@@ -1605,9 +1790,10 @@ function buildVerse(verseNum, title, wordCount, samphusConfig) {
     wordsHTML += `
       <div class="word-group">
         <input type="text" class="${inputCls}"
-          data-verse="${verseNum}" data-position="${i}"
+          data-verse="${verseNum}" data-position="${i}" data-basecls="${inputCls}"
           data-samphus="${sc ? sc.type : 'none'}" placeholder="${ph}">
         <span class="word-label">คำที่ ${i}</span>
+        <button type="button" class="span-btn" tabindex="-1" onclick="spanBtnClick(this)">✂️ แยกพยางค์</button>
         ${indicator}
       </div>`;
   }
@@ -1626,9 +1812,9 @@ function buildVerse(verseNum, title, wordCount, samphusConfig) {
 function updateVerseFeedback(verseNumber) {
   const fb = document.getElementById(`verse${verseNumber}-feedback`);
   if (!fb) return;
-  const inputs = document.querySelectorAll(`[data-verse="${verseNumber}"]`);
+  const inputs = document.querySelectorAll(`.word-input[data-verse="${verseNumber}"]`);
   let filled = 0;
-  inputs.forEach(inp => { if (inp.value.trim()) filled++; });
+  inputs.forEach(inp => { if (inp.value.trim()) filled += getSpan(inp); });
   const total = inputs.length;
   if (filled === 0) {
     fb.textContent = `กรุณากรอกคำในวรรคที่ ${verseNumber}`;
@@ -1659,10 +1845,18 @@ function checkAllSamphus() {
 }
 
 function addSamphusCheck(send, receive, type) {
-  const sInp = document.querySelector(`[data-verse="${send.verse}"][data-position="${send.position}"]`);
-  const rInp = document.querySelector(`[data-verse="${receive.verse}"][data-position="${receive.position}"]`);
-  if (!sInp || !rInp) return;
-  const sw = sInp.value.trim(), rw = rInp.value.trim();
+  const sCell = rhymeCell(send.verse, send.position), rCell = rhymeCell(receive.verse, receive.position);
+  if (!sCell || !rCell) return;
+  const sInp = sCell.input, rInp = rCell.input;
+  const sw = sCell.word, rw = rCell.word;
+  if ((sCell.startsAtPos && sw) || (rCell.startsAtPos && rw)) {
+    const bad = sCell.startsAtPos && sw ? sInp : rInp;
+    const el = document.createElement('div');
+    el.className = 'samphus-feedback samphus-warning';
+    el.textContent = '⚠️ ตำแหน่งสัมผัสตกที่พยางค์หน้าของคำหลายพยางค์ ตรวจสัมผัสไม่ได้ ลองย้ายคำให้พยางค์สุดท้ายอยู่ตรงตำแหน่งสัมผัส';
+    bad.parentElement.appendChild(el);
+    return;
+  }
   const connText = type === 'cross' ? ' (ข้ามบท)' : '';
 
   const mkFb = (msg, cls) => { const el = document.createElement('div'); el.className = `samphus-feedback ${cls}`; el.textContent = msg; return el; };
@@ -1697,13 +1891,14 @@ function checkVowelOveruse() {
       { verse: vid(s,3), position: 5 }
     ];
     const words = positions.map(p => {
-      const inp = document.querySelector(`[data-verse="${p.verse}"][data-position="${p.position}"]`);
-      return inp ? inp.value.trim() : '';
+      const cell = rhymeCell(p.verse, p.position);
+      return cell && !cell.startsAtPos ? cell.word : '';
     });
     if (words[0] && words[1] && words[2]) {
       const v1 = getVowelSound(words[0]), v2 = getVowelSound(words[1]), v3 = getVowelSound(words[2]);
       if (v1 === v2 && v2 === v3 && v1 !== '') {
-        const inp = document.querySelector(`[data-verse="${positions[2].verse}"][data-position="${positions[2].position}"]`);
+        const rc = rhymeCell(positions[2].verse, positions[2].position);
+        const inp = rc && rc.input;
         if (inp) {
           const el = document.createElement('div');
           el.className = 'samphus-feedback vowel-overuse-feedback';
@@ -1761,8 +1956,7 @@ function copyToClipboard() {
 
 // ===== SAVE / LOAD =====
 function saveData() {
-  const data = {};
-  document.querySelectorAll('.word-input').forEach(inp => { data[`v${inp.dataset.verse}_p${inp.dataset.position}`] = inp.value; });
+  const data = collectInputData();
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ stanzas: totalStanzas, words: data }));
 }
 function loadData() {
@@ -1773,18 +1967,15 @@ function loadData() {
     if (saved.stanzas && saved.stanzas !== totalStanzas) {
       totalStanzas = saved.stanzas; buildVersesHTML(); updateTitles();
     }
-    const data = saved.words || {};
-    document.querySelectorAll('.word-input').forEach(inp => {
-      const key = `v${inp.dataset.verse}_p${inp.dataset.position}`;
-      if (data[key]) { inp.value = data[key]; updateVerseFeedback(inp.dataset.verse); }
-    });
+    restoreInputData(saved.words || {});
+    document.querySelectorAll('.word-input').forEach(inp => { if (inp.value) updateVerseFeedback(inp.dataset.verse); });
     updateResult(); checkAllSamphus();
   } catch(e) {}
 }
 function resetData() {
   if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมด? การกระทำนี้ไม่สามารถย้อนกลับได้')) return;
   localStorage.removeItem(STORAGE_KEY);
-  document.querySelectorAll('.word-input').forEach(inp => { inp.value = ''; });
+  restoreInputData({});
   document.querySelectorAll('.verse-feedback').forEach(fb => { fb.textContent = ''; fb.style.cssText = ''; });
   updateResult(); checkAllSamphus();
 }
@@ -1806,13 +1997,10 @@ function adjustCount(d) {
 }
 function applyVerseCount() {
   if (pendingCount !== totalStanzas) {
-    const oldData = {};
-    document.querySelectorAll('.word-input').forEach(inp => { oldData[`v${inp.dataset.verse}_p${inp.dataset.position}`] = inp.value; });
+    const oldData = collectInputData();
     totalStanzas = pendingCount; buildVersesHTML(); updateTitles();
-    document.querySelectorAll('.word-input').forEach(inp => {
-      const key = `v${inp.dataset.verse}_p${inp.dataset.position}`;
-      if (oldData[key]) { inp.value = oldData[key]; updateVerseFeedback(inp.dataset.verse); }
-    });
+    restoreInputData(oldData);
+    document.querySelectorAll('.word-input').forEach(inp => { if (inp.value) updateVerseFeedback(inp.dataset.verse); });
     updateResult(); checkAllSamphus(); saveData();
   }
   closeVerseCountModal();
@@ -2091,13 +2279,14 @@ async function saveCompositionImage(colorMode) {
   const stanzas = [];
   for (let s = 1; s <= totalStanzas; s++) {
     const getVerse = (v) => {
-      const inputs = document.querySelectorAll(`[data-verse="${vid(s,v)}"]`);
+      const inputs = document.querySelectorAll(`.word-input[data-verse="${vid(s,v)}"]`);
       const arr = [];
       inputs.forEach(inp => {
-        arr.push({
-          word: inp.value.trim(),
-          color: colorMode ? rhymeColor(s, v, parseInt(inp.dataset.position)) : null
-        });
+        if (isAbsorbed(inp)) return;
+        const p0 = parseInt(inp.dataset.position), n = getSpan(inp);
+        let color = null;
+        if (colorMode) for (let k = 0; k < n; k++) { const c = rhymeColor(s, v, p0 + k); if (c) color = c; }
+        arr.push({ word: inp.value.trim(), color: color });
       });
       return arr;
     };
@@ -2311,14 +2500,9 @@ async function saveCompositionImage(colorMode) {
   try {
     canvas.toBlob((blob) => {
       if (!blob) { status.style.color = '#ef4444'; status.textContent = '❌ สร้างภาพไม่สำเร็จ'; restoreBtns(); return; }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
       const safe = (name || 'ผลงาน').replace(/[\\/:*?"<>|]/g, '');
-      a.href = url;
-      a.download = `กาพย์ยานี๑๑_${safe}.png`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
-      confetti({ particleCount: 80, spread: 65, origin: { y: 0.6 } });
+      saveBlobFile(blob, `กาพย์ยานี๑๑_${safe}.png`);
+      try { confetti({ particleCount: 80, spread: 65, origin: { y: 0.6 } }); } catch (e) {}
       status.style.color = '#16a34a';
       status.textContent = '✅ บันทึกภาพเรียบร้อย!';
       restoreBtns();
@@ -2329,6 +2513,70 @@ async function saveCompositionImage(colorMode) {
     restoreBtns();
   }
 }
+
+
+// ===== บันทึกไฟล์/ภาพ (รองรับเบราว์เซอร์ในแอป เช่น LINE / Facebook ที่ดาวน์โหลดตรงๆ ไม่ได้) =====
+function isInAppBrowser() {
+  return /Line\/|FBAN|FBAV|FB_IAB|FBIOS|Instagram|MicroMessenger|Messenger|Snapchat|Twitter|TikTok|KAKAOTALK|; wv\)|WebView/i.test(navigator.userAgent || '');
+}
+
+function showSaveImageOverlay(blob, filename) {
+  const old = document.getElementById('saveImgOverlay'); if (old) old.remove();
+  const ov = document.createElement('div');
+  ov.id = 'saveImgOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:20000;background:rgba(15,23,42,.92);display:flex;flex-direction:column;align-items:center;padding:14px;overflow-y:auto;font-family:Prompt,Kanit,sans-serif;';
+  const canShare = !!(navigator.canShare && navigator.share && (function () {
+    try { return navigator.canShare({ files: [new File([blob], filename, { type: blob.type })] }); } catch (e) { return false; }
+  })());
+  ov.innerHTML =
+    '<div style="width:100%;max-width:520px;color:#fff;text-align:center;">' +
+      '<div style="font-size:18px;font-weight:700;margin-bottom:6px;">🖼️ บันทึกภาพผลงาน</div>' +
+      '<div style="font-size:14px;line-height:1.6;color:#cbd5e1;margin-bottom:10px;">' +
+        '<b style="color:#fde68a;">แตะค้างที่ภาพ</b> แล้วเลือก <b style="color:#fde68a;">"บันทึกรูปภาพ / Save image"</b><br>' +
+        'หรือกดปุ่มด้านล่าง</div>' +
+      '<img id="saveImgPreview" alt="ผลงาน" style="width:100%;border-radius:12px;background:#fff;box-shadow:0 6px 24px rgba(0,0,0,.4);-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;">' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">' +
+        (canShare ? '<button id="saveImgShare" style="flex:1;min-width:140px;padding:12px;border:none;border-radius:10px;background:#16a34a;color:#fff;font-size:15px;font-weight:700;font-family:inherit;">📤 แชร์ / บันทึกลงเครื่อง</button>' : '') +
+        '<button id="saveImgOpen" style="flex:1;min-width:140px;padding:12px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-size:15px;font-weight:700;font-family:inherit;">🌐 คัดลอกลิงก์ไปเปิดใน Chrome/Safari</button>' +
+        '<button id="saveImgClose" style="flex:1;min-width:100px;padding:12px;border:none;border-radius:10px;background:#e2e8f0;color:#334155;font-size:15px;font-weight:700;font-family:inherit;">ปิด</button>' +
+      '</div>' +
+      '<div id="saveImgMsg" style="font-size:13px;color:#a7f3d0;margin-top:8px;min-height:18px;"></div>' +
+    '</div>';
+  document.body.appendChild(ov);
+  const img = ov.querySelector('#saveImgPreview');
+  const fr = new FileReader();
+  fr.onload = () => { img.src = fr.result; };   // data URL: แสดงผลได้ในทุก WebView
+  fr.readAsDataURL(blob);
+  const msg = ov.querySelector('#saveImgMsg');
+  ov.querySelector('#saveImgClose').onclick = () => ov.remove();
+  const sh = ov.querySelector('#saveImgShare');
+  if (sh) sh.onclick = async () => {
+    try { await navigator.share({ files: [new File([blob], filename, { type: blob.type })], title: filename }); }
+    catch (e) { if (e && e.name !== 'AbortError') msg.textContent = 'แชร์ไม่สำเร็จ ลองแตะค้างที่ภาพแทน'; }
+  };
+  ov.querySelector('#saveImgOpen').onclick = () => {
+    const url = location.href.split('#')[0];
+    const done = () => { msg.textContent = '✅ คัดลอกลิงก์แล้ว นำไปวางในเบราว์เซอร์ Chrome/Safari เพื่อเปิดหน้านี้'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => { msg.textContent = url; });
+    else { const ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { msg.textContent = url; } document.body.removeChild(ta); }
+  };
+}
+
+// ดาวน์โหลดไฟล์ — ถ้าอยู่ในเบราว์เซอร์ในแอปและเป็นภาพ จะแสดงหน้าต่างให้แตะค้างบันทึก/แชร์แทน
+function saveBlobFile(blob, filename) {
+  const isImg = /^image\//.test(blob.type || '');
+  if (isImg && isInAppBrowser()) { showSaveImageOverlay(blob, filename); return; }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2500);
+  if (!isImg && isInAppBrowser()) {
+    alert('หากไฟล์ไม่ถูกดาวน์โหลด ให้เปิดลิงก์นี้ในเบราว์เซอร์ Chrome/Safari แล้วลองอีกครั้ง');
+  }
+}
+window.saveBlobFile = saveBlobFile;
 
 // ===== PRODUCT TOUR ENGINE =====
 const TOUR_LAST_KEY = 'kaph_yani_tour_lastshown';
@@ -3323,13 +3571,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ---------- เก็บข้อมูลบทประพันธ์ปัจจุบัน ----------
   function collectWork() {
-    var words = {}, filled = 0, total = 0, st = stanzaCount();
+    var words = window.yaniCollectData(), filled = 0, total = 0, st = stanzaCount();
     document.querySelectorAll('.word-input').forEach(function (inp) {
-      var key = 'v' + inp.dataset.verse + '_p' + inp.dataset.position;
       var val = (inp.value || '').trim();
-      words[key] = val;
+      words['v' + inp.dataset.verse + '_p' + inp.dataset.position] = val;
       total++;
-      if (val) filled++;
+      if (val) filled += window.yaniGetSpan(inp);   // คำหลายพยางค์นับตามจำนวนพยางค์
     });
     return { words: words, stanzas: st, filled: filled, total: total };
   }
@@ -3357,8 +3604,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (typeof updateTitles === 'function') updateTitles();
       }
     } catch (e) {}
+    window.yaniRestoreData(data.words);
     document.querySelectorAll('.word-input').forEach(function (inp) {
-      inp.value = data.words['v' + inp.dataset.verse + '_p' + inp.dataset.position] || '';
       try { if (typeof updateVerseFeedback === 'function') updateVerseFeedback(inp.dataset.verse); } catch (e) {}
     });
     try {
@@ -3376,7 +3623,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         var gid = (s - 1) * 4 + v, len = VERSE_LEN[v], parts = [], has = false;
         for (var p = 1; p <= len; p++) {
           var w = words['v' + gid + '_p' + p];
-          if (w) { parts.push(esc(w)); has = true; any = true; }
+          var sp = parseInt(words['v' + gid + '_p' + p + '_sp'] || '1', 10) || 1;
+          if (w) { parts.push(esc(w)); has = true; any = true; p += sp - 1; }
           else parts.push('<span class="cr-blank">＿</span>');
         }
         lines += '<div class="cr-work-line">' + parts.join(' ') + '</div>';
@@ -4226,11 +4474,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ids.forEach(function (id) { var b = $(id); if (b) b.disabled = !!on; });
   }
   function crDownloadBlob(blob, filename) {
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(function () { URL.revokeObjectURL(url); }, 2500);
+    window.saveBlobFile(blob, filename);
   }
   function crSafeName(s) {
     return String(s || 'ผลงาน').replace(/[\\/:*?"<>|]/g, '').trim() || 'ผลงาน';
@@ -4289,10 +4533,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       for (var v = 1; v <= 4; v++) {
         var gid = (s - 1) * 4 + v, len = VERSE_LEN[v], arr = [];
         for (var p = 1; p <= len; p++) {
-          arr.push({
-            word: (words['v' + gid + '_p' + p] || '').trim(),
-            color: colorMode ? crRhymeColor(s, v, p, st) : null
-          });
+          var sp = parseInt(words['v' + gid + '_p' + p + '_sp'] || '1', 10) || 1, col = null;
+          if (colorMode) for (var k = 0; k < sp; k++) { var cc = crRhymeColor(s, v, p + k, st); if (cc) col = cc; }
+          arr.push({ word: (words['v' + gid + '_p' + p] || '').trim(), color: col });
+          p += sp - 1;
         }
         vs.push(arr);
       }
