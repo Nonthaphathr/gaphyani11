@@ -206,6 +206,7 @@
     }
     .span-btn:hover { background: #e0f2fe; }
     .span-btn.on { border-style: solid; background: #0ea5e9; color: #fff; }
+    .span-btn.warn { border-color: #f59e0b; background: #fffbeb; color: #b45309; }
     .span-btn.show { display: inline-block; }
 
     .verse-feedback {
@@ -1578,14 +1579,43 @@ function spanVisual(inp) {
   spanRefreshBtn(inp);
 }
 
+// คำที่น่าสงสัยว่าเป็นหลายพยางค์ (เกณฑ์หลวม ใช้เพื่อเสนอปุ่มแยกพยางค์เท่านั้น)
+const CLUSTER_OK = new Set(['กร','กล','ขร','ขล','คร','คล','ตร','ทร','ปร','ปล','พร','พล','ผล','ศร','สร','ซร','จร','ฟร','ฟล','บร','บล','ดร','หร','ฝร']);
+function maybeMultiSyllable(word) {
+  if (!word) return false;
+  if (hasMultipleSyllables(word)) return true;
+  const w = word.trim().replace(/[่้๊๋์]/g, '');
+  if (w.length < 3 || !/^[ก-ฮ][ก-ฮ]/.test(w)) return false;
+  const a = w[0], b = w[1];
+  if (b === 'ว' || CLUSTER_OK.has(a + b)) return false;                 // อักษรควบกล้ำ
+  if (a === 'ห' && 'งญนมยรลว'.includes(b)) return false;                // อักษรนำ ห
+  if (a === 'อ' && b === 'ย') return false;                             // อย่า อยู่
+  if (b === 'ร' && w[2] === 'ร') return false;                          // รร เช่น ธรรม กรรม
+  return true;   // เช่น ตลาด ขนม สนุก ถนน จมูก
+}
+document.addEventListener('focusin', function (e) {
+  const t = e.target;
+  if (t && t.classList && t.classList.contains('word-input')) { t.dataset.focusKeep = '1'; spanRefreshBtn(t); }
+});
+document.addEventListener('focusout', function (e) {
+  const t = e.target;
+  if (t && t.classList && t.classList.contains('word-input')) {
+    setTimeout(function () { delete t.dataset.focusKeep; spanRefreshBtn(t); }, 450);
+  }
+});
+
 function spanRefreshBtn(inp) {
   const btn = inp.parentElement.querySelector('.span-btn'); if (!btn) return;
   const n = getSpan(inp), len = verseInputs(inp.dataset.verse).length, pos = parseInt(inp.dataset.position, 10);
   const has = inp.value.trim().length > 0;
   if (n > 1) { btn.textContent = `↩ ยกเลิกแยก (${n} พยางค์)`; btn.classList.add('on', 'show'); }
   else {
+    // แสดงปุ่มเฉพาะ: คำที่น่าสงสัยว่าเป็นหลายพยางค์ หรือช่องที่กำลังพิมพ์อยู่
+    const focused = inp === document.activeElement || inp.dataset.focusKeep === '1';
+    const sus = has && maybeMultiSyllable(inp.value);
     btn.textContent = '✂️ แยกพยางค์'; btn.classList.remove('on');
-    btn.classList.toggle('show', has && pos < len && !isAbsorbed(inp));
+    btn.classList.toggle('warn', sus);
+    btn.classList.toggle('show', has && pos < len && !isAbsorbed(inp) && (sus || focused));
   }
 }
 
@@ -1793,7 +1823,7 @@ function buildVerse(verseNum, title, wordCount, samphusConfig) {
           data-verse="${verseNum}" data-position="${i}" data-basecls="${inputCls}"
           data-samphus="${sc ? sc.type : 'none'}" placeholder="${ph}">
         <span class="word-label">คำที่ ${i}</span>
-        <button type="button" class="span-btn" tabindex="-1" onclick="spanBtnClick(this)">✂️ แยกพยางค์</button>
+        <button type="button" class="span-btn" tabindex="-1" onmousedown="event.preventDefault()" onclick="spanBtnClick(this)">✂️ แยกพยางค์</button>
         ${indicator}
       </div>`;
   }
