@@ -4767,8 +4767,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     var dotted = '';
     stanzas.forEach(function (lines, si) {
       lines.forEach(function (ln) {
-        var txt = (ln[0] && ln[1]) ? (ln[0] + '  ' + ln[1]) : (ln[0] || ln[1]);
-        dotted += '<canvas class="dl" data-t="' + esc(txt) + '" data-fs="' + fs + '" data-pitch="' + pitch.toFixed(2) +
+        dotted += '<canvas class="dl" data-t="' + esc(ln[0] || '') + '" data-t2="' + esc(ln[1] || '') + '" data-fs="' + fs + '" data-pitch="' + pitch.toFixed(2) +
           '" data-base="' + base + '" style="width:186mm;height:' + pitch.toFixed(2) + 'mm"></canvas>';
       });
       if (si < stanzas.length - 1) dotted += '<div style="height:' + GAP + 'mm"></div>';
@@ -4820,18 +4819,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
     }
+    // รอบแรก: หาตัวคูณย่อขนาดกลาง ให้ทุกวรรคกว้างไม่เกินครึ่งหน้า และตัวอักษรเท่ากันทั้งหน้า
+    var COL2 = 95, COLW = 88, scale = 1, meas = document.createElement('canvas').getContext('2d');
     document.querySelectorAll('canvas.dl').forEach(function (cv) {
-      var txt = cv.dataset.t, fsmm = parseFloat(cv.dataset.fs), pitch = parseFloat(cv.dataset.pitch), base = parseFloat(cv.dataset.base);
+      var f = parseFloat(cv.dataset.fs) * PX;
+      meas.font = '400 ' + f + 'px THSarabunPSK';
+      [cv.dataset.t, cv.dataset.t2].forEach(function (t) {
+        if (!t) return;
+        var L = meas.measureText(t).width;
+        if (L > COLW * PX) scale = Math.min(scale, COLW * PX / L);
+      });
+    });
+    document.querySelectorAll('canvas.dl').forEach(function (cv) {
+      var txt = cv.dataset.t, txt2 = cv.dataset.t2, fsmm = parseFloat(cv.dataset.fs), pitch = parseFloat(cv.dataset.pitch), base = parseFloat(cv.dataset.base);
       var W = Math.round(186 * PX), H = Math.round(pitch * PX);
       cv.width = W; cv.height = H;
       var off = document.createElement('canvas'); off.width = W; off.height = H;
       var c = off.getContext('2d');
-      var fs = fsmm * PX;
+      var fs = fsmm * PX * scale * 0.99;
       c.font = '400 ' + fs + 'px THSarabunPSK';
-      var L = c.measureText(txt).width, maxW = 183 * PX;
-      if (L > maxW) { fs *= maxW / L * 0.99; c.font = '400 ' + fs + 'px THSarabunPSK'; }
       c.fillStyle = '#000'; c.textBaseline = 'alphabetic';
-      c.fillText(txt, 1 * PX, base * PX);
+      if (txt) c.fillText(txt, 1 * PX, base * PX);
+      if (txt2) c.fillText(txt2, COL2 * PX, base * PX);
       var data = c.getImageData(0, 0, W, H).data, im = new Uint8Array(W * H);
       for (var i = 0; i < W * H; i++) im[i] = data[i * 4 + 3] > 110 ? 1 : 0;
       thin(im, W, H);
