@@ -629,6 +629,35 @@
 .cr-mini-btn:hover{background:#eff6ff;}
 .cr-mini-btn.danger{color:#dc2626;}
 
+
+/* ---------- ชื่อเรื่อง (ขั้นที่ 1) ก่อนช่องพิมพ์กาพย์ ---------- */
+.wt-card{
+  display:flex;align-items:center;gap:14px;background:#fff;border:2px solid #c7d2fe;
+  border-radius:14px;padding:14px 16px;margin:6px 0 14px;box-shadow:0 3px 12px rgba(99,102,241,.10);
+  transition:border-color .2s, box-shadow .2s;
+}
+.wt-card:focus-within{border-color:#6366f1;box-shadow:0 0 0 4px rgba(99,102,241,.15);}
+.wt-card.wt-nudge{animation:wtNudge .5s ease 2;border-color:#f59e0b;}
+@keyframes wtNudge{0%,100%{transform:none}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.wt-step{
+  flex:none;width:42px;height:42px;border-radius:50%;background:#6366f1;color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;
+  font-family:'Prompt','Kanit',sans-serif;
+}
+.wt-main{flex:1;min-width:0;}
+.wt-main label{display:block;font-size:14px;font-weight:700;color:#3730a3;margin-bottom:6px;font-family:'Prompt','Kanit',sans-serif;}
+.wt-main input{
+  width:100%;padding:11px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:17px;
+  font-family:'Prompt','Kanit',sans-serif;outline:none;background:#fafbff;
+}
+.wt-main input:focus{border-color:#6366f1;background:#fff;}
+.wt-hint{font-size:12.5px;color:#64748b;margin-top:5px;min-height:16px;font-family:'Prompt','Kanit',sans-serif;}
+.wt-hint.ok{color:#15803d;}
+.wt-step2{display:flex;align-items:center;gap:10px;margin:2px 0 10px;font-family:'Prompt','Kanit',sans-serif;
+  font-weight:700;color:#334155;font-size:15px;}
+.wt-step2 .wt-step{width:30px;height:30px;font-size:15px;background:#16a34a;}
+@media(max-width:600px){.wt-card{padding:12px;gap:10px}.wt-step{width:34px;height:34px;font-size:16px}}
+
 /* ---------- Overlay ทั่วไปของโหมดห้องเรียน ---------- */
 .cr-overlay{
   display:none; position:fixed; inset:0; z-index:12000;
@@ -863,6 +892,16 @@
     <button class="verse-count-button" id="btn-qr" style="background:#0ea5e9;" onclick="openQrModal()">📱 QR Code</button>
     <button class="reset-button" onclick="resetData()">🗑️ เคลียร์กล่องข้อความ</button>
   </div>
+
+  <div class="wt-card" id="wt-card">
+    <div class="wt-step">1</div>
+    <div class="wt-main">
+      <label for="work-title-main">📖 ชื่อเรื่อง / หัวข้อที่จะแต่ง</label>
+      <input type="text" id="work-title-main" maxlength="80" autocomplete="off" placeholder="เช่น ความงามของธรรมชาติ">
+      <div class="wt-hint" id="wt-hint">💡 ตั้งชื่อเรื่องก่อน แล้วค่อยแต่งกาพย์ในช่องด้านล่าง</div>
+    </div>
+  </div>
+  <div class="wt-step2"><div class="wt-step">2</div><span>แต่งกาพย์ยานี ๑๑ ลงในช่องด้านล่าง</span></div>
 
   <div id="verses-container"></div>
 
@@ -1987,6 +2026,7 @@ function copyQrLink() {
 
 // ===== SAVE COMPOSITION AS IMAGE =====
 function openSaveImageModal() {
+  try { var _t = (window.getMainWorkTitle && window.getMainWorkTitle()) || ''; if (_t) document.getElementById('si-topic').value = _t; } catch(e) {}
   let hasContent = false;
   document.querySelectorAll('.word-input').forEach(inp => { if (inp.value.trim()) hasContent = true; });
   if (!hasContent) { alert('กรุณากรอกคำในบทประพันธ์ก่อนบันทึกภาพ'); return; }
@@ -3357,7 +3397,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       bar.innerHTML =
         '<span>🏫 ห้อง <b>' + esc(S.roomCode) + '</b></span>' +
         '<span class="cr-chip">🧑‍🎓 ' + esc(S.studentName) + (S.studentClass ? ' · ' + esc(S.studentClass) : '') + '</span>' +
-        '<span class="cr-wt-chip" onclick="crOpenWorkTitle()" title="คลิกเพื่อตั้ง/แก้ไขชื่อผลงาน">📖 ' +
+        '<span class="cr-wt-chip" onclick="crFocusMainTitle()" title="คลิกเพื่อตั้ง/แก้ไขชื่อเรื่อง">📖 ' +
           (S.workTitle ? esc(S.workTitle) : 'ตั้งชื่อผลงาน') + ' ✏️</span>' +
         (S.roomActive === false
           ? '<span class="cr-st cr-st-closed">🔒 ครูปิดรับงานแล้ว</span>'
@@ -3377,6 +3417,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         '<button class="cr-mini-btn danger" onclick="crLeaveRoom()">🚪 ออกจากห้อง</button>';
     }
     bar.classList.add('active');
+    crSyncTitleInput();
   }
 
   // ============================================================
@@ -4768,7 +4809,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       ".sec:after{content:'';flex:1;border-top:0.25mm solid #cbd5e1}" +
       '.dots{flex:none;margin-bottom:2mm}' +
       'svg.dl{display:block;border-bottom:0.2mm solid #d1d5db;overflow:visible}' +
-      "svg.dl text{font-family:'THSarabunPSK','TH Sarabun New',sans-serif;fill:none;stroke:#000;stroke-width:0.34;stroke-dasharray:0.01 0.62;stroke-linecap:round}" +
+      "svg.dl text{font-family:'THSarabunPSK','TH Sarabun New',sans-serif;fill:none;stroke:#222;stroke-width:0.27;stroke-dasharray:0.01 0.85;stroke-linecap:round}" +
       '.blank{flex:1;min-height:30mm;background-image:linear-gradient(to bottom,transparent calc(100% - 0.25mm),#888 calc(100% - 0.25mm)),linear-gradient(to bottom,transparent calc(42% - 0.1mm),#d1d5db calc(42% - 0.1mm),#d1d5db calc(42% + 0.1mm),transparent calc(42% + 0.1mm));background-size:100% 12mm;background-repeat:repeat-y}' +
       '@media print{body{background:#fff}.bar{display:none}.sheet{margin:0;box-shadow:none}' +
       '*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
@@ -4794,7 +4835,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     var items = [], meta = crRoomMeta();
     if (mode === 'self') {
       var cw = collectWork();
-      items = [{ name: S.studentName, cls: S.studentClass, no: S.studentNo, workTitle: S.workTitle || '',
+      items = [{ name: S.studentName, cls: S.studentClass, no: S.studentNo, workTitle: window.getMainWorkTitle() || S.workTitle || '',
                  words: cw.words, stanzas: cw.stanzas }];
     } else if (mode === 'one') {
       var it = crCurrentItem();
@@ -4809,6 +4850,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     crOpenPracticePrint(items, meta);
   };
+
+
+  // ============================================================
+  // ===== ช่องกรอกชื่อเรื่อง (ขั้นที่ 1) — ใช้ทั้งโหมดปกติและโหมดห้องเรียน =====
+  // ============================================================
+  var CR_TITLE_KEY = 'kaph_yani_work_title_v1';
+  var titleSaveTimer = null;
+  function crTitleEl() { return $('work-title-main'); }
+  function crInRoomAsStudent() { return S.role === 'student' && S.roomCode && S.studentId; }
+  window.getMainWorkTitle = function () {
+    var el = crTitleEl();
+    return el ? el.value.trim() : '';
+  };
+  function crSetTitleHint(msg, ok) {
+    var h = $('wt-hint'); if (!h) return;
+    h.textContent = msg; h.className = 'wt-hint' + (ok ? ' ok' : '');
+  }
+  function crSyncTitleInput() {
+    var el = crTitleEl(); if (!el) return;
+    if (document.activeElement === el) return;
+    var v;
+    if (crInRoomAsStudent()) v = S.workTitle || '';
+    else { try { v = localStorage.getItem(CR_TITLE_KEY) || ''; } catch (e) { v = ''; } }
+    if (el.value !== v) el.value = v;
+    crSetTitleHint(v ? '✅ บันทึกชื่อเรื่องแล้ว' : '💡 ตั้งชื่อเรื่องก่อน แล้วค่อยแต่งกาพย์ในช่องด้านล่าง', !!v);
+  }
+  window.crFocusMainTitle = function () {
+    var el = crTitleEl(); if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(function () { el.focus(); }, 300);
+  };
+  function crTitleChanged() {
+    var title = crTitleEl().value.trim();
+    crSetTitleHint(title ? '⏳ กำลังบันทึก...' : '💡 ตั้งชื่อเรื่องก่อน แล้วค่อยแต่งกาพย์ในช่องด้านล่าง', false);
+    clearTimeout(titleSaveTimer);
+    titleSaveTimer = setTimeout(async function () {
+      if (crInRoomAsStudent()) {
+        S.workTitle = title; saveSession();
+        var d = db_();
+        try {
+          if (d) await d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(S.studentId)
+            .set({ workTitle: title, workTitleAt: Date.now() }, { merge: true });
+          crSetTitleHint(title ? '✅ บันทึกชื่อเรื่องแล้ว (ครูเห็นทันที)' : '💡 ตั้งชื่อเรื่องก่อน', !!title);
+        } catch (e) { crSetTitleHint('⚠️ ซิงก์ชื่อเรื่องไม่สำเร็จ จะลองใหม่เมื่อแก้ไขอีกครั้ง', false); }
+        var chip = document.querySelector('.cr-wt-chip');
+        if (chip) chip.innerHTML = '📖 ' + (title ? esc(title) : 'ตั้งชื่อผลงาน') + ' ✏️';
+      } else {
+        try { localStorage.setItem(CR_TITLE_KEY, title); } catch (e) {}
+        crSetTitleHint(title ? '✅ บันทึกชื่อเรื่องแล้ว' : '💡 ตั้งชื่อเรื่องก่อน', !!title);
+      }
+    }, 700);
+  }
+  function crInitTitleInput() {
+    var el = crTitleEl(); if (!el) return;
+    el.addEventListener('input', crTitleChanged);
+    // เตือนเบาๆ ถ้ายังไม่ตั้งชื่อเรื่องแต่เริ่มพิมพ์กาพย์ (ไม่บล็อกการพิมพ์)
+    var nudged = false;
+    document.addEventListener('focusin', function (e) {
+      if (!e.target || !e.target.classList || !e.target.classList.contains('word-input')) return;
+      if (el.value.trim() || nudged) return;
+      nudged = true;
+      var card = $('wt-card');
+      if (card) { card.classList.add('wt-nudge'); setTimeout(function () { card.classList.remove('wt-nudge'); }, 1200); }
+      crSetTitleHint('👆 อย่าลืมตั้งชื่อเรื่องก่อนนะ (แต่งต่อได้เลย)', false);
+    });
+    crSyncTitleInput();
+  }
 
   // ---------- ปุ่มเปิดโหมดห้องเรียน ----------
   function injectButton() {
@@ -4828,6 +4936,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ---------- เริ่มระบบ ----------
   function boot() {
+    crInitTitleInput();
     injectButton();
     loadSeen();
     ensureBadgeBar();
