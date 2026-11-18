@@ -4753,14 +4753,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     var stanzas = crPracticeStanzas(it);
     var nLines = 0; stanzas.forEach(function (s) { nLines += s.length; });
     var GAP = 3, AVAIL = 170;
-    var pitch = Math.max(6.5, Math.min(14, (AVAIL - stanzas.length * GAP) / Math.max(1, nLines)));
-    var fs = (pitch * 0.92).toFixed(2), base = (pitch * 0.78).toFixed(2);
+    var pitch = Math.max(6.5, Math.min(15.5, (AVAIL - stanzas.length * GAP) / Math.max(1, nLines)));
+    var fs = (pitch * 0.9).toFixed(2), base = (pitch * 0.74).toFixed(2);
     var dotted = '';
     stanzas.forEach(function (lines, si) {
       lines.forEach(function (ln) {
         var txt = (ln[0] && ln[1]) ? (ln[0] + '  ' + ln[1]) : (ln[0] || ln[1]);
-        dotted += '<svg class="dl" viewBox="0 0 186 ' + pitch.toFixed(2) + '" width="186mm" height="' + pitch.toFixed(2) + 'mm">' +
-          '<text x="0.5" y="' + base + '" font-size="' + fs + '">' + esc(txt) + '</text></svg>';
+        dotted += '<canvas class="dl" data-t="' + esc(txt) + '" data-fs="' + fs + '" data-pitch="' + pitch.toFixed(2) +
+          '" data-base="' + base + '" style="width:186mm;height:' + pitch.toFixed(2) + 'mm"></canvas>';
       });
       if (si < stanzas.length - 1) dotted += '<div style="height:' + GAP + 'mm"></div>';
     });
@@ -4779,6 +4779,73 @@ document.addEventListener('DOMContentLoaded', async () => {
       '<div class="sec">คัดด้วยตนเอง</div>' +
       '<div class="blank"></div>' +
       '</section>';
+  }
+
+
+  // วาดรอยจุดประเป็นเส้นเดียวตามแนวกลางตัวอักษร (skeleton) — ทำงานในหน้าต่างพิมพ์
+  function crPracticeRenderDots() {
+    var DPI = 300, PX = DPI / 25.4;
+    function thin(im, W, H) {
+      var changed = true, rm = [];
+      while (changed) {
+        changed = false;
+        for (var step = 0; step < 2; step++) {
+          rm.length = 0;
+          for (var y = 1; y < H - 1; y++) {
+            for (var x = 1; x < W - 1; x++) {
+              var i = y * W + x;
+              if (!im[i]) continue;
+              var p2 = im[i - W], p3 = im[i - W + 1], p4 = im[i + 1], p5 = im[i + W + 1],
+                  p6 = im[i + W], p7 = im[i + W - 1], p8 = im[i - 1], p9 = im[i - W - 1];
+              var B = p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9;
+              if (B < 2 || B > 6) continue;
+              var A = (!p2 && p3) + (!p3 && p4) + (!p4 && p5) + (!p5 && p6) + (!p6 && p7) + (!p7 && p8) + (!p8 && p9) + (!p9 && p2);
+              if (A !== 1) continue;
+              if (step === 0) { if (p2 * p4 * p6 || p4 * p6 * p8) continue; }
+              else { if (p2 * p4 * p8 || p2 * p6 * p8) continue; }
+              rm.push(i);
+            }
+          }
+          for (var k = 0; k < rm.length; k++) im[rm[k]] = 0;
+          if (rm.length) changed = true;
+        }
+      }
+    }
+    document.querySelectorAll('canvas.dl').forEach(function (cv) {
+      var txt = cv.dataset.t, fsmm = parseFloat(cv.dataset.fs), pitch = parseFloat(cv.dataset.pitch), base = parseFloat(cv.dataset.base);
+      var W = Math.round(186 * PX), H = Math.round(pitch * PX);
+      cv.width = W; cv.height = H;
+      var off = document.createElement('canvas'); off.width = W; off.height = H;
+      var c = off.getContext('2d');
+      var fs = fsmm * PX;
+      c.font = '400 ' + fs + 'px THSarabunPSK';
+      var L = c.measureText(txt).width, maxW = 183 * PX;
+      if (L > maxW) { fs *= maxW / L * 0.99; c.font = '400 ' + fs + 'px THSarabunPSK'; }
+      c.fillStyle = '#000'; c.textBaseline = 'alphabetic';
+      c.fillText(txt, 1 * PX, base * PX);
+      var data = c.getImageData(0, 0, W, H).data, im = new Uint8Array(W * H);
+      for (var i = 0; i < W * H; i++) im[i] = data[i * 4 + 3] > 110 ? 1 : 0;
+      thin(im, W, H);
+      var D = 0.95 * PX, R = 0.22 * PX, grid = {}, g = cv.getContext('2d');
+      g.fillStyle = '#222';
+      for (var x = 0; x < W; x++) {
+        for (var y = 0; y < H; y++) {
+          if (!im[y * W + x]) continue;
+          var cx = Math.floor(x / D), cy = Math.floor(y / D), ok = true;
+          for (var dx = -1; dx <= 1 && ok; dx++) for (var dy = -1; dy <= 1 && ok; dy++) {
+            var arr = grid[(cx + dx) + '_' + (cy + dy)];
+            if (!arr) continue;
+            for (var q = 0; q < arr.length; q++) {
+              var ex = arr[q][0] - x, ey = arr[q][1] - y;
+              if (ex * ex + ey * ey < D * D) { ok = false; break; }
+            }
+          }
+          if (!ok) continue;
+          (grid[cx + '_' + cy] = grid[cx + '_' + cy] || []).push([x, y]);
+          g.beginPath(); g.arc(x, y, R, 0, 6.2832); g.fill();
+        }
+      }
+    });
   }
 
   function crOpenPracticePrint(items, meta) {
@@ -4808,16 +4875,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       '.sec{flex:none;font-size:13pt;font-weight:700;color:#475569;margin:1mm 0 1mm;display:flex;align-items:center;gap:2mm}' +
       ".sec:after{content:'';flex:1;border-top:0.25mm solid #cbd5e1}" +
       '.dots{flex:none;margin-bottom:2mm}' +
-      'svg.dl{display:block;border-bottom:0.2mm solid #d1d5db;overflow:visible}' +
-      "svg.dl text{font-family:'THSarabunPSK','TH Sarabun New',sans-serif;fill:none;stroke:#222;stroke-width:0.27;stroke-dasharray:0.01 0.85;stroke-linecap:round}" +
+      'canvas.dl{display:block;border-bottom:0.2mm solid #d1d5db}' +
       '.blank{flex:1;min-height:30mm;background-image:linear-gradient(to bottom,transparent calc(100% - 0.25mm),#888 calc(100% - 0.25mm)),linear-gradient(to bottom,transparent calc(42% - 0.1mm),#d1d5db calc(42% - 0.1mm),#d1d5db calc(42% + 0.1mm),transparent calc(42% + 0.1mm));background-size:100% 12mm;background-repeat:repeat-y}' +
       '@media print{body{background:#fff}.bar{display:none}.sheet{margin:0;box-shadow:none}' +
       '*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
     var script =
-      '(function(){var done=false;var MAXW=185;' +
-      'function fit(){document.querySelectorAll("svg.dl text").forEach(function(t){var L=t.getComputedTextLength();if(L>MAXW){t.setAttribute("font-size",(parseFloat(t.getAttribute("font-size"))*MAXW/L*0.99).toFixed(2));}});' +
-      'var P=12*96/25.4;document.querySelectorAll(".blank").forEach(function(b){var h=b.getBoundingClientRect().height;b.style.flex="none";b.style.height=(Math.max(2,Math.floor(h/P))*12)+"mm";});}' +
-      'function go(){if(done)return;done=true;fit();setTimeout(function(){window.print();},350);}' +
+      '(function(){var done=false;var renderDots=(' + crPracticeRenderDots.toString() + ');' +
+      'function fit(){renderDots();var P=12*96/25.4;document.querySelectorAll(".blank").forEach(function(b){var h=b.getBoundingClientRect().height;b.style.flex="none";b.style.height=(Math.max(2,Math.floor(h/P))*12)+"mm";});}' +
+      'function go(){if(done)return;done=true;fit();setTimeout(function(){window.print();},500);}' +
       'window.addEventListener("load",function(){var fl=document.fonts;if(!fl||!fl.load){go();return;}' +
       'Promise.all([fl.load("16pt THSarabunPSK"),fl.load("bold 16pt THSarabunPSK")]).then(go,go);setTimeout(go,4000);});})();';
     var html = '<!DOCTYPE html><html lang="th"><head><meta charset="utf-8">' +
