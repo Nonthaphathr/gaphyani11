@@ -652,6 +652,21 @@
 }
 .cr-mini-btn:hover{background:#eff6ff;}
 .cr-mini-btn.danger{color:#dc2626;}
+.cr-mini-btn.hand{background:#fef3c7;color:#b45309;}
+.cr-mini-btn.hand.on{background:#f59e0b;color:#fff;animation:crHandPulse 1.6s ease-in-out infinite;}
+.cr-mini-btn.submit{background:#16a34a;color:#fff;}
+.cr-mini-btn.submit.done{background:#dcfce7;color:#15803d;}
+@keyframes crHandPulse{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.6);}50%{box-shadow:0 0 0 6px rgba(245,158,11,0);}}
+.cr-tag{display:inline-block;font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:999px;margin:6px 4px 0 0;}
+.cr-tag-hand{background:#f59e0b;color:#fff;}
+.cr-tag-done{background:#dcfce7;color:#15803d;}
+.cr-scard.hand{border-color:#f59e0b;background:#fffbeb;}
+.cr-tag-ret{background:#fed7aa;color:#c2410c;}
+.cr-tag-score{background:#16a34a;color:#fff;}
+.cr-scard.accepted{border-color:#16a34a;}
+body.cr-accepted .span-btn{display:none !important;}
+body.cr-accepted .word-input{background:#f1f5f9;}
+.cr-flagbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0;}
 
 
 /* ---------- ชื่อเรื่อง (ขั้นที่ 1) ก่อนช่องพิมพ์กาพย์ ---------- */
@@ -3540,6 +3555,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <button class="cr-exp-btn word" id="cr-exp-all-docx" onclick="crExportAllDocx()">📄 Word ทั้งห้อง</button>
         <button class="cr-exp-btn img"  id="cr-exp-all-img"  onclick="crExportAllImages()">🖼️ ภาพทั้งห้อง</button>
         <button class="cr-exp-btn" onclick="crPrintPractice('all')">✍️ พิมพ์ฝึกคัดทั้งห้อง</button>
+        <button class="cr-exp-btn word" style="background:#16a34a;" id="cr-exp-xlsx" onclick="crExportScoresXlsx()">📊 ดาวน์โหลดคะแนน (.xlsx)</button>
         <button class="cr-mini-btn" style="background:#0ea5e9;color:#fff;" onclick="crOpenRoomQr()">📱 QR ห้อง</button>
         <button class="cr-mini-btn" style="background:#f1f5f9;" onclick="crCloseModal('crDashModal')">✕ ปิด</button>
       </div>
@@ -3553,6 +3569,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     </div>
     <div class="cr-grid" id="cr-student-grid"></div>
     <div class="cr-empty" id="cr-dash-empty">ยังไม่มีนักเรียนเข้าห้อง — ให้นักเรียนสแกน QR เพื่อเข้าร่วม</div>
+  </div>
+</div>
+
+<!-- ครู: ส่งคืนไปแก้ไข -->
+<div id="crReturnModal" class="cr-overlay" style="z-index:12200;">
+  <div class="cr-card" style="max-width:420px;">
+    <h2 class="cr-title">↩️ ส่งคืนไปแก้ไข</h2>
+    <p class="cr-sub" id="cr-ret-name"></p>
+    <label class="cr-label">ข้อแนะนำให้นักเรียนแก้ไข (ไม่บังคับ)</label>
+    <textarea id="cr-ret-note" class="cr-input" rows="3" placeholder="เช่น สัมผัสวรรคที่ ๒ ยังไม่ถูก ลองเปลี่ยนคำ"></textarea>
+    <div class="cr-quick" style="margin-top:8px;">
+      <button onclick="crRetQuick('สัมผัสยังไม่ถูกต้อง ลองแก้แล้วส่งใหม่')">สัมผัสไม่ถูก</button>
+      <button onclick="crRetQuick('จำนวนคำยังไม่ครบ ลองเติมให้ครบแล้วส่งใหม่')">คำไม่ครบ</button>
+      <button onclick="crRetQuick('เลือกใช้คำให้สละสลวยขึ้นอีกนิด แล้วส่งใหม่')">ปรับคำ</button>
+    </div>
+    <div class="cr-status" id="cr-ret-status"></div>
+    <button class="cr-btn cr-btn-primary" onclick="crConfirmReturn()">↩️ ส่งคืนให้นักเรียนแก้ไข</button>
+    <button class="cr-btn cr-btn-ghost" onclick="crCloseModal('crReturnModal')">ยกเลิก</button>
+  </div>
+</div>
+
+<!-- ครู: รับงานและลงคะแนน -->
+<div id="crGradeModal" class="cr-overlay" style="z-index:12200;">
+  <div class="cr-card" style="max-width:420px;">
+    <h2 class="cr-title">✅ รับงานและลงคะแนน</h2>
+    <p class="cr-sub" id="cr-gr-name"></p>
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;"><label class="cr-label">คะแนนที่ได้ <span style="color:#dc2626;">*</span></label>
+        <input type="number" id="cr-gr-score" class="cr-input" min="0" step="0.5" inputmode="decimal"></div>
+      <div style="flex:1;"><label class="cr-label">คะแนนเต็ม</label>
+        <input type="number" id="cr-gr-max" class="cr-input" min="1" step="0.5" value="10" inputmode="decimal"></div>
+    </div>
+    <label class="cr-label">ข้อเสนอแนะ (ไม่บังคับ)</label>
+    <textarea id="cr-gr-note" class="cr-input" rows="2" placeholder="เช่น สัมผัสถูกต้อง ใช้ภาพพจน์ได้ดี"></textarea>
+    <div class="cr-status" id="cr-gr-status"></div>
+    <button class="cr-btn cr-btn-student" onclick="crConfirmGrade()">✅ รับงานและบันทึกคะแนน</button>
+    <button class="cr-btn cr-btn-ghost" onclick="crCloseModal('crGradeModal')">ยกเลิก</button>
   </div>
 </div>
 
@@ -3580,6 +3633,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <span class="cr-wt-value empty" id="cr-work-title-value">— ยังไม่ได้ตั้งชื่อ —</span>
       <button class="cr-exp-btn" onclick="crOpenWorkTitle()">✏️ ตั้ง / แก้ไขชื่อ</button>
     </div>
+    <div class="cr-flagbar" id="cr-work-flags"></div>
     <div id="cr-work-body"></div>
     <h4 style="margin:16px 0 8px;color:#1e293b;font-size:15px;">💬 คอมเมนต์ถึงนักเรียน (ส่งแบบสด)</h4>
     <div class="cr-cmt-list" id="cr-work-comments"></div>
@@ -3661,9 +3715,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     studentClass: '',
     studentNo: '',
     workTitle: '',
+    handUp: false, submitted: false, returned: false, returnNote: '', accepted: false, score: null, maxScore: null,
     teacherOf: null      // รหัสห้องที่ผู้ใช้เป็นครูเจ้าของ (ใช้สลับไป-กลับบทบาทนักเรียน/ครู)
   };
   var unsubStudents = null, unsubOneStudent = null, unsubComments = null, unsubMyComments = null, unsubMyDoc = null;
+  var teacherSnapSeen = false;
   var unsubRoomDoc = null;   // เฝ้าดูสถานะเปิด/ปิดรับงานของห้อง
   var currentViewId = null;
   var studentsCache = {};
@@ -3801,6 +3857,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     else document.querySelector('.container').appendChild(bar);
     return bar;
   }
+  // ครูรับงานแล้ว → ล็อกช่องกรอกของนักเรียน (ครูส่งคืนไปแก้ไขจึงจะแก้ได้อีก)
+  function crApplyLock() {
+    var lock = (S.role === 'student' && S.accepted === true);
+    document.body.classList.toggle('cr-accepted', lock);
+    document.querySelectorAll('.word-input').forEach(function (inp) { inp.readOnly = lock; });
+  }
   function updateBadgeBar() {
     var bar = ensureBadgeBar();
     if (!S.roomCode) { bar.classList.remove('active'); bar.innerHTML = ''; return; }
@@ -3813,6 +3875,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         (S.roomActive === false
           ? '<span class="cr-st cr-st-closed">🔒 ครูปิดรับงานแล้ว</span>'
           : '<span class="cr-chip" id="cr-sync-chip">☁️ ซิงก์อัตโนมัติ</span>') +
+        (S.accepted ? '<span class="cr-st cr-st-open" title="' + esc(S.returnNote || '') + '">✅ ครูรับงานแล้ว · คะแนน ' + esc(S.score) + '/' + esc(S.maxScore) + '</span>' : '') +
+        (S.returned && !S.submitted && !S.accepted ? '<span class="cr-st cr-st-closed" title="' + esc(S.returnNote || '') + '">↩️ ครูส่งคืนให้แก้ไข' + (S.returnNote ? ' : ' + esc(S.returnNote) : '') + '</span>' : '') +
+        (S.roomActive === false || S.accepted ? '' :
+          '<button class="cr-mini-btn hand' + (S.handUp ? ' on' : '') + '" onclick="crRaiseHand()" title="แจ้งครูให้มาตรวจงาน">' +
+            (S.handUp ? '✋ รอครูตรวจ (กดยกเลิก)' : '✋ ยกมือขอตรวจ') + '</button>' +
+          '<button class="cr-mini-btn submit' + (S.submitted ? ' done' : '') + '" onclick="crSubmitWork()" title="ส่งงานให้ครู (ระบบตรวจสัมผัสก่อนส่ง)">' +
+            (S.submitted ? '✅ ส่งงานแล้ว (ส่งอีกครั้ง)' : '📤 ส่งงาน') + '</button>') +
         '<button class="cr-mini-btn" onclick="crPrintPractice(\'self\')" title="พิมพ์ผลงานเป็นใบฝึกคัดลายมือ A4">✍️ พิมพ์ฝึกคัดลายมือ</button>' +
         (S.teacherOf && S.teacherOf === S.roomCode ? '<button class="cr-mini-btn" onclick="crBackToTeacher()">👩‍🏫 กลับเป็นครู</button>' : '') +
         '<button class="cr-mini-btn danger" onclick="crLeaveRoom()">ออกจากห้อง</button>';
@@ -3830,6 +3899,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         '<button class="cr-mini-btn danger" onclick="crLeaveRoom()">🚪 ออกจากห้อง</button>';
     }
     bar.classList.add('active');
+    crApplyLock();
     crSyncTitleInput();
   }
 
@@ -3916,11 +3986,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     var d = db_();
     if (!d || !S.roomCode) return;
     if (unsubStudents) { try { unsubStudents(); } catch (e) {} unsubStudents = null; }
+    teacherSnapSeen = false;
     unsubStudents = d.collection(CR_ROOMS).doc(S.roomCode).collection('students')
       .onSnapshot(function (snap) {
+        var prev = studentsCache, first = !teacherSnapSeen;
         studentsCache = {};
         snap.forEach(function (doc) { studentsCache[doc.id] = doc.data(); });
+        teacherSnapSeen = true;
+        if (!first) {
+          Object.keys(studentsCache).forEach(function (id) {
+            var n = studentsCache[id], o = prev[id] || {};
+            if (n.handRaised && !o.handRaised) crToast('✋ ' + (n.name || 'นักเรียน') + ' ยกมือขอตรวจ', 'เปิดแดชบอร์ดเพื่อดูผลงานและคอมเมนต์', true);
+            if (n.submitted && !o.submitted) crToast('📤 ' + (n.name || 'นักเรียน') + ' ส่งงานแล้ว', (n.filled || 0) + '/' + (n.total || 0) + ' คำ', false);
+          });
+        }
         renderDashboard();
+        if (currentViewId) crRenderFlagBar();
       }, function (err) {
         console.warn('[classroom] listener error', err);
       });
@@ -3939,7 +4020,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     var grid = $('cr-student-grid'), empty = $('cr-dash-empty');
     if (!grid) return;
     var ids = Object.keys(studentsCache);
-    ids.sort(function (a, b) { return (studentsCache[a].joinedAt || 0) - (studentsCache[b].joinedAt || 0); });
+    ids.sort(function (a, b) {
+      var ha = studentsCache[a].handRaised ? 1 : 0, hb = studentsCache[b].handRaised ? 1 : 0;
+      if (ha !== hb) return hb - ha;                                   // คนยกมือขึ้นก่อน
+      if (ha && hb) return (studentsCache[a].handAt || 0) - (studentsCache[b].handAt || 0);
+      return (studentsCache[a].joinedAt || 0) - (studentsCache[b].joinedAt || 0);
+    });
 
     var totalP = 0, activeN = 0, doneN = 0, now = Date.now();
     var html = '';
@@ -3952,12 +4038,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (recent) activeN++;
       if (filled >= tot) doneN++;
       var initial = (s.name || '?').trim().charAt(0);
-      html += '<div class="cr-scard" onclick="crViewStudent(\'' + id + '\')">' +
+      html += '<div class="cr-scard' + (s.handRaised ? ' hand' : '') + (s.accepted ? ' accepted' : '') + '" onclick="crViewStudent(\'' + id + '\')">' +
         '<div class="cr-scard-top"><div class="cr-avatar">' + esc(initial) + '</div>' +
         '<div><div class="cr-sname">' + esc(s.name || 'ไม่ระบุชื่อ') + '</div>' +
         '<div class="cr-stime"><span class="cr-dot' + (recent ? '' : ' idle') + '"></span>' + nowStr(s.updatedAt) + '</div></div></div>' +
         '<div class="cr-bar"><div class="cr-bar-f" style="width:' + pct + '%"></div></div>' +
         '<div class="cr-scard-info"><span>' + filled + '/' + tot + ' คำ</span><span>' + pct + '%</span></div>' +
+        (s.handRaised ? '<span class="cr-tag cr-tag-hand">✋ ยกมือขอตรวจ</span>' : '') +
+        (s.accepted ? '<span class="cr-tag cr-tag-score">✅ รับแล้ว ' + esc(s.score) + '/' + esc(s.maxScore) + '</span>'
+          : s.submitted ? '<span class="cr-tag cr-tag-done">📤 ส่งงานแล้ว</span>'
+          : s.returned ? '<span class="cr-tag cr-tag-ret">↩️ ส่งคืนแก้ไข</span>' : '') +
         '</div>';
     });
     grid.innerHTML = html;
@@ -3969,6 +4059,154 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ---------- ดูผลงานนักเรียนรายคน ----------
+  function crRenderFlagBar() {
+    var box = $('cr-work-flags'); if (!box) return;
+    var s = studentsCache[currentViewId] || {}, h = '';
+    if (s.handRaised) h += '<span class="cr-tag cr-tag-hand">✋ ยกมือขอตรวจ ' + nowStr(s.handAt) + '</span>' +
+      '<button class="cr-mini-btn hand" onclick="crClearHand()">✔ ตรวจแล้ว / ลดมือ</button>';
+    if (s.submitted) h += '<span class="cr-tag cr-tag-done">📤 ส่งงานแล้ว ' + nowStr(s.submittedAt) + '</span>';
+    if (s.returned && !s.submitted) h += '<span class="cr-tag cr-tag-ret">↩️ ส่งคืนแก้ไขแล้ว' + (s.returnNote ? ' : ' + esc(s.returnNote) : '') + '</span>';
+    if (s.accepted) h += '<span class="cr-tag cr-tag-score">✅ รับงานแล้ว คะแนน ' + esc(s.score) + '/' + esc(s.maxScore) + '</span>';
+    h += '<button class="cr-mini-btn" style="background:#fed7aa;color:#c2410c;" onclick="crOpenReturn()">↩️ ส่งคืนไปแก้ไข</button>' +
+         '<button class="cr-mini-btn submit" onclick="crOpenGrade()">✅ ' + (s.accepted ? 'แก้คะแนน' : 'รับงานและลงคะแนน') + '</button>';
+    box.innerHTML = h;
+  }
+  async function crTeacherNotify(id, text) {
+    try {
+      await db_().collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(id)
+        .collection('comments').add({ text: text, ts: Date.now(), from: S.roomTeacher || 'ครูผู้สอน', read: false });
+    } catch (e) {}
+  }
+  window.crOpenReturn = function () {
+    if (!currentViewId) return;
+    var s = studentsCache[currentViewId] || {};
+    $('cr-ret-name').textContent = '🧑‍🎓 ' + (s.name || 'นักเรียน');
+    $('cr-ret-note').value = ''; $('cr-ret-status').textContent = '';
+    openModal('crReturnModal');
+  };
+  window.crRetQuick = function (t) { $('cr-ret-note').value = t; };
+  window.crConfirmReturn = async function () {
+    var id = currentViewId, d = db_(), st = $('cr-ret-status');
+    if (!id || !d) return;
+    var note = $('cr-ret-note').value.trim();
+    st.className = 'cr-status'; st.textContent = '⏳ กำลังส่งคืน...';
+    try {
+      await d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(id).set({
+        returned: true, returnNote: note, returnedAt: Date.now(),
+        submitted: false, accepted: false, handRaised: false, handAt: 0
+      }, { merge: true });
+      await crTeacherNotify(id, '↩️ ครูส่งคืนให้แก้ไข' + (note ? ': ' + note : ' — แก้ไขแล้วกด "ส่งงาน" อีกครั้ง'));
+      crCloseModal('crReturnModal');
+    } catch (e) { st.className = 'cr-status cr-err'; st.textContent = 'ส่งคืนไม่สำเร็จ: ' + (e && e.message ? e.message : 'ผิดพลาด'); }
+  };
+  window.crOpenGrade = function () {
+    if (!currentViewId) return;
+    var s = studentsCache[currentViewId] || {};
+    $('cr-gr-name').textContent = '🧑‍🎓 ' + (s.name || 'นักเรียน');
+    $('cr-gr-score').value = s.score != null ? s.score : '';
+    $('cr-gr-max').value = s.maxScore != null ? s.maxScore : (window._crLastMax || 10);
+    $('cr-gr-note').value = s.scoreNote || ''; $('cr-gr-status').textContent = '';
+    openModal('crGradeModal');
+    setTimeout(function () { $('cr-gr-score').focus(); }, 200);
+  };
+  window.crConfirmGrade = async function () {
+    var id = currentViewId, d = db_(), st = $('cr-gr-status');
+    if (!id || !d) return;
+    var sc = parseFloat($('cr-gr-score').value), mx = parseFloat($('cr-gr-max').value);
+    st.className = 'cr-status cr-err';
+    if (isNaN(mx) || mx <= 0) { st.textContent = 'กรุณากรอกคะแนนเต็มให้ถูกต้อง'; return; }
+    if (isNaN(sc) || sc < 0) { st.textContent = 'กรุณากรอกคะแนนที่ได้'; return; }
+    if (sc > mx) { st.textContent = 'คะแนนที่ได้มากกว่าคะแนนเต็ม'; return; }
+    var note = $('cr-gr-note').value.trim();
+    st.className = 'cr-status'; st.textContent = '⏳ กำลังบันทึก...';
+    try {
+      var was = (studentsCache[id] || {}).accepted;
+      await d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(id).set({
+        accepted: true, score: sc, maxScore: mx, scoreNote: note, gradedAt: Date.now(),
+        submitted: true, returned: false, handRaised: false, handAt: 0
+      }, { merge: true });
+      window._crLastMax = mx;
+      if (!was) await crTeacherNotify(id, '✅ ครูรับงานแล้ว คะแนน ' + sc + '/' + mx + (note ? ' — ' + note : ''));
+      crCloseModal('crGradeModal');
+    } catch (e) { st.className = 'cr-status cr-err'; st.textContent = 'บันทึกไม่สำเร็จ: ' + (e && e.message ? e.message : 'ผิดพลาด'); }
+  };
+
+  // ---------- ดาวน์โหลดคะแนนเป็น .xlsx (สร้างเองด้วย JSZip ไม่ต้องใช้ไลบรารีเพิ่ม) ----------
+  function xlCol(i) { return String.fromCharCode(65 + i); }
+  function xlStr(ref, text, style) {
+    return '<c r="' + ref + '"' + (style ? ' s="' + style + '"' : '') + ' t="inlineStr"><is><t xml:space="preserve">' + crXml(text) + '</t></is></c>';
+  }
+  function xlNum(ref, n, style) { return '<c r="' + ref + '"' + (style ? ' s="' + style + '"' : '') + '><v>' + n + '</v></c>'; }
+  async function crBuildScoresXlsx() {
+    var JSZip = await crLoadJSZip();
+    var meta = crRoomMeta(), list = crSortedStudents();
+    var heads = ['ลำดับ', 'ชื่อ-สกุล', 'ชั้น', 'เลขที่', 'ชื่อผลงาน', 'จำนวนคำที่แต่ง', 'สถานะ', 'คะแนนที่ได้', 'คะแนนเต็ม', 'ร้อยละ', 'ข้อเสนอแนะจากครู', 'ส่งงานเมื่อ'];
+    var rows = '';
+    rows += '<row r="1">' + xlStr('A1', 'คะแนนฝึกแต่งกาพย์ยานี ๑๑ — ' + meta.roomTitle, 2) + '</row>';
+    rows += '<row r="2">' + xlStr('A2', 'รหัสห้อง ' + meta.roomCode + (meta.teacher ? ' · ครูผู้สอน ' + meta.teacher : '') + ' · วันที่ ' + crThaiDate(), 0) + '</row>';
+    var hr = '<row r="4">';
+    heads.forEach(function (h, i) { hr += xlStr(xlCol(i) + '4', h, 1); });
+    rows += hr + '</row>';
+    var first = 5, r = first;
+    list.forEach(function (it, idx) {
+      var s = studentsCache[it.id] || {};
+      var status = s.accepted ? 'รับงานแล้ว' : s.submitted ? 'ส่งแล้ว (รอตรวจ)' : s.returned ? 'ส่งคืนแก้ไข' : 'ยังไม่ส่ง';
+      var row = '<row r="' + r + '">' +
+        xlNum('A' + r, idx + 1, 3) + xlStr('B' + r, it.name, 0) + xlStr('C' + r, it.cls, 3) + xlStr('D' + r, crArabic(it.no), 3) +
+        xlStr('E' + r, it.workTitle, 0) + xlStr('F' + r, (it.filled || 0) + '/' + (it.total || 0), 3) + xlStr('G' + r, status, 3);
+      if (s.accepted && s.score != null) {
+        row += xlNum('H' + r, s.score, 3) + xlNum('I' + r, s.maxScore, 3) +
+          '<c r="J' + r + '" s="4"><f>IF(AND(ISNUMBER(H' + r + '),ISNUMBER(I' + r + '),I' + r + '&gt;0),ROUND(H' + r + '/I' + r + '*100,1),"")</f></c>';
+      } else { row += xlStr('H' + r, '', 3) + xlStr('I' + r, '', 3) + xlStr('J' + r, '', 3); }
+      row += xlStr('K' + r, s.scoreNote || s.returnNote || '', 0) +
+        xlStr('L' + r, s.submittedAt ? new Date(s.submittedAt).toLocaleString('th-TH') : '', 3) + '</row>';
+      rows += row; r++;
+    });
+    var last = r - 1;
+    rows += '<row r="' + (r + 1) + '">' + xlStr('G' + (r + 1), 'คะแนนเฉลี่ย', 1) +
+      '<c r="H' + (r + 1) + '" s="4"><f>IFERROR(ROUND(AVERAGE(H' + first + ':H' + last + '),2),"")</f></c></row>';
+    var widths = [7, 28, 9, 8, 32, 14, 18, 12, 12, 10, 36, 20];
+    var cols = '<cols>' + widths.map(function (w, i) { return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>'; }).join('') + '</cols>';
+    var sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      cols + '<sheetData>' + rows + '</sheetData></worksheet>';
+    var styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<fonts count="3"><font><sz val="14"/><name val="TH SarabunPSK"/></font><font><b/><sz val="14"/><name val="TH SarabunPSK"/></font><font><b/><sz val="16"/><name val="TH SarabunPSK"/></font></fonts>' +
+      '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDBEAFE"/></patternFill></fill></fills>' +
+      '<borders count="2"><border/><border><left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"/></border></borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5">' +
+      '<xf numFmtId="0" xfId="0" fontId="0" fillId="0" borderId="0" applyFont="1"/>' +
+      '<xf numFmtId="0" xfId="0" fontId="1" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" xfId="0" fontId="2" fillId="0" borderId="0" applyFont="1"/>' +
+      '<xf numFmtId="0" xfId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center"/></xf>' +
+      '<xf numFmtId="0" xfId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center"/></xf></cellXfs></styleSheet>';
+    var zip = new JSZip();
+    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>');
+    zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
+    zip.file('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="คะแนน" sheetId="1" r:id="rId1"/></sheets></workbook>');
+    zip.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+    zip.file('xl/styles.xml', styles);
+    zip.file('xl/worksheets/sheet1.xml', sheet);
+    return await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  }
+  window.crExportScoresXlsx = async function () {
+    if (!Object.keys(studentsCache).length) { alert('ยังไม่มีนักเรียนในห้องนี้'); return; }
+    crBusy(['cr-exp-xlsx'], true); crStat('cr-dash-exp-status', '⏳ กำลังสร้างไฟล์คะแนน (.xlsx)...');
+    try {
+      var blob = await crBuildScoresXlsx();
+      crDownloadBlob(blob, 'คะแนน_' + crSafeName(S.roomCode) + '_' + crSafeName(S.roomTitle) + '.xlsx');
+      crStat('cr-dash-exp-status', '✅ ดาวน์โหลดไฟล์คะแนนเรียบร้อย');
+    } catch (e) { crStat('cr-dash-exp-status', '❌ ' + (e && e.message ? e.message : 'สร้างไฟล์ไม่สำเร็จ'), true); }
+    crBusy(['cr-exp-xlsx'], false);
+  };
+
+  window.crClearHand = async function () {
+    var d = db_(); if (!d || !currentViewId) return;
+    try {
+      await d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(currentViewId)
+        .set({ handRaised: false, handAt: 0 }, { merge: true });
+    } catch (e) {}
+  };
+
   window.crViewStudent = function (id) {
     var d = db_();
     if (!d) return;
@@ -3978,6 +4216,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('cr-work-meta').textContent = (s.cls ? 'ชั้น ' + s.cls + ' ' : '') + (s.no ? 'เลขที่ ' + s.no : '');
     crRenderWorkTitleLine(s.workTitle || '');
     $('cr-work-body').innerHTML = renderWork(s);
+    crRenderFlagBar();
     $('cr-cmt-status').textContent = '';
     $('cr-cmt-input').value = '';
     if ($('cr-work-exp-status')) $('cr-work-exp-status').textContent = '';
@@ -3992,6 +4231,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       studentsCache[id] = data;
       crRenderWorkTitleLine(data.workTitle || '');
       $('cr-work-body').innerHTML = renderWork(data);
+      crRenderFlagBar();
       $('cr-work-meta').textContent =
         (data.cls ? 'ชั้น ' + data.cls + ' · ' : '') + (data.no ? 'เลขที่ ' + data.no + ' · ' : '') +
         'อัปเดต ' + nowStr(data.updatedAt) + ' · ' + (data.filled || 0) + '/' + (data.total || 0) + ' คำ';
@@ -4034,6 +4274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           text: text, ts: Date.now(), from: S.roomTeacher || 'ครูผู้สอน', read: false
         });
       inp.value = '';
+      if ((studentsCache[currentViewId] || {}).handRaised) crClearHand();   // ตอบแล้ว = ลดมือให้อัตโนมัติ
       st.textContent = '✅ ส่งคอมเมนต์ถึงนักเรียนแล้ว';
       setTimeout(function () { st.textContent = ''; }, 2500);
     } catch (e) {
@@ -4268,7 +4509,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ---------- ซิงก์ผลงานนักเรียนขึ้นคลาวด์ ----------
   function pushWork() {
     var d = db_();
-    if (!d || S.role !== 'student' || !S.roomCode || !S.studentId || resuming) return;
+    if (!d || S.role !== 'student' || !S.roomCode || !S.studentId || resuming || S.accepted) return;
     if (S.roomActive === false) {           // ครูปิดรับงานแล้ว — ไม่ส่งขึ้นคลาวด์
       var c0 = $('cr-sync-chip'); if (c0) c0.textContent = '🔒 ปิดรับงานแล้ว';
       return;
@@ -4276,11 +4517,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     var work = collectWork();
     var chip = $('cr-sync-chip');
     if (chip) chip.textContent = '☁️ กำลังบันทึก...';
-    d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(S.studentId).set({
+    var extra = unsubmitPending ? { submitted: false } : {};
+    d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(S.studentId).set(Object.assign({
       name: S.studentName, cls: S.studentClass, no: S.studentNo,
       updatedAt: Date.now(),
       stanzas: work.stanzas, words: work.words, filled: work.filled, total: work.total
-    }, { merge: true }).then(function () {
+    }, extra), { merge: true }).then(function () {
+      unsubmitPending = false;
       rememberDevice(S.roomCode, { lastPush: Date.now() });
       if (chip) chip.textContent = '☁️ บันทึกแล้ว ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
     }).catch(function () {
@@ -4290,9 +4533,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // หน่วงเวลาก่อนบันทึกขึ้นคลาวด์ (มิลลิวินาที)
   // ยิ่งค่ามาก ยิ่งประหยัดโควตา Firestore แต่ครูจะเห็นผลงานช้าลงตามนั้น
   var CR_SYNC_DELAY = 3000;
+  var unsubmitPending = false;   // แก้งานหลังส่ง → สถานะ "ส่งแล้ว" ต้องถูกยกเลิก
 
   function queueSync() {
-    if (S.role !== 'student') return;
+    if (S.role !== 'student' || S.accepted) return;
+    if (S.submitted) { S.submitted = false; unsubmitPending = true; saveSession(); updateBadgeBar(); }
     clearTimeout(syncTimer);
     var chip = $('cr-sync-chip');
     if (chip) chip.textContent = '✏️ กำลังพิมพ์...';
@@ -4330,8 +4575,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     unsubMyDoc = d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(S.studentId)
       .onSnapshot(function (doc) {
         if (!doc.exists) return;
-        var t = (doc.data() || {}).workTitle || '';
-        if (t !== S.workTitle) { S.workTitle = t; saveSession(); updateBadgeBar(); }
+        var dd = doc.data() || {}, t = dd.workTitle || '', ch = false;
+        if (t !== S.workTitle) { S.workTitle = t; ch = true; }
+        var h = !!dd.handRaised, sb = !!dd.submitted;
+        if (h !== S.handUp) {
+          var wasUp = S.handUp; S.handUp = h; ch = true;
+          if (wasUp && !h) crToast('✋ ครูรับทราบแล้ว', 'ครูตรวจ/รับทราบการยกมือของคุณแล้ว', true);
+        }
+        if (sb !== S.submitted && !unsubmitPending) { S.submitted = sb; ch = true; }
+        var rt = !!dd.returned, ac = !!dd.accepted;
+        if (rt && !S.returned && !sb) crToast('↩️ ครูส่งคืนให้แก้ไข', dd.returnNote || 'แก้ไขงานแล้วกด "ส่งงาน" อีกครั้ง', true);
+        if (ac && !S.accepted) crToast('✅ ครูรับงานแล้ว', 'คะแนน ' + dd.score + '/' + dd.maxScore + (dd.scoreNote ? ' — ' + dd.scoreNote : ''), true);
+        if (rt !== S.returned || ac !== S.accepted || (dd.returnNote || dd.scoreNote || '') !== S.returnNote ||
+            (dd.score != null ? dd.score : null) !== S.score) {
+          S.returned = rt; S.accepted = ac; S.returnNote = (ac ? dd.scoreNote : dd.returnNote) || '';
+          S.score = dd.score != null ? dd.score : null; S.maxScore = dd.maxScore != null ? dd.maxScore : null; ch = true;
+        }
+        if (ch) { saveSession(); updateBadgeBar(); }
       }, function () {});
   }
 
@@ -4651,6 +4911,58 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   // ---------- ออกจากห้อง ----------
+  // ---------- ยกมือขอตรวจ / ส่งงาน (นักเรียน) ----------
+  window.crRaiseHand = async function () {
+    var d = db_();
+    if (!d || S.role !== 'student' || !S.roomCode || !S.studentId) return;
+    if (S.roomActive === false) { crToast('🔒 ห้องปิดรับงานแล้ว', 'ไม่สามารถยกมือขอตรวจได้', false); return; }
+    if (S.accepted) return;
+    var up = !S.handUp;
+    try {
+      clearTimeout(syncTimer);
+      var work = collectWork();
+      await d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(S.studentId).set({
+        name: S.studentName, cls: S.studentClass, no: S.studentNo, updatedAt: Date.now(),
+        stanzas: work.stanzas, words: work.words, filled: work.filled, total: work.total,
+        handRaised: up, handAt: up ? Date.now() : 0
+      }, { merge: true });
+      S.handUp = up; saveSession(); updateBadgeBar();
+      crToast(up ? '✋ ยกมือแล้ว' : 'ยกเลิกการยกมือแล้ว', up ? 'ครูเห็นผลงานล่าสุดของคุณและจะมาตรวจให้' : '', false);
+    } catch (e) {
+      crToast('ยกมือไม่สำเร็จ', (e && e.message) ? e.message : 'ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่', false);
+    }
+  };
+
+  async function crDoSubmit() {
+    var d = db_();
+    if (!d || S.role !== 'student' || !S.roomCode || !S.studentId) return;
+    if (S.roomActive === false) { crToast('🔒 ห้องปิดรับงานแล้ว', 'ไม่สามารถส่งงานได้ กรุณาติดต่อครู', false); return; }
+    try {
+      clearTimeout(syncTimer);
+      var work = collectWork();
+      await d.collection(CR_ROOMS).doc(S.roomCode).collection('students').doc(S.studentId).set({
+        name: S.studentName, cls: S.studentClass, no: S.studentNo, updatedAt: Date.now(),
+        stanzas: work.stanzas, words: work.words, filled: work.filled, total: work.total,
+        submitted: true, submittedAt: Date.now(), handRaised: false, returned: false
+      }, { merge: true });
+      unsubmitPending = false; S.submitted = true; S.handUp = false; S.returned = false;
+      rememberDevice(S.roomCode, { lastPush: Date.now() });
+      saveSession(); updateBadgeBar();
+      crToast('📤 ส่งงานเรียบร้อย', 'ครูเห็นสถานะ "ส่งงานแล้ว" ในแดชบอร์ด หากแก้ไขงานอีก ระบบจะเปลี่ยนเป็นยังไม่ส่งจนกว่าจะกดส่งใหม่', true);
+    } catch (e) {
+      crToast('ส่งงานไม่สำเร็จ', (e && e.message) ? e.message : 'ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่', false);
+    }
+  }
+
+  window.crSubmitWork = function () {
+    if (S.role !== 'student') return;
+    var has = false;
+    document.querySelectorAll('.word-input').forEach(function (inp) { if (inp.value.trim()) has = true; });
+    if (!has) { alert('กรุณาแต่งบทประพันธ์ก่อนส่งงาน'); return; }
+    // ตรวจสัมผัส/คำไม่ครบก่อนส่ง เหมือนตอนกดคัดลอก
+    yaniGuard('ส่งงาน', function () { crDoSubmit(); });
+  };
+
   // ครูเข้าห้องของตัวเองในบทบาทนักเรียน
   window.crTeacherAsStudent = async function () {
     if (S.role !== 'teacher' || !S.roomCode) return;
