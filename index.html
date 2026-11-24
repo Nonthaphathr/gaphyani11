@@ -698,6 +698,7 @@
   align-items:center; justify-content:center; padding:16px; overflow-y:auto;
 }
 .cr-overlay.active{display:flex;}
+#crQrModal{z-index:12100;}   /* QR เปิดจากแดชบอร์ด ต้องอยู่หน้าแดชบอร์ด */
 .cr-card{
   background:#fff; border-radius:18px; width:100%; max-width:460px;
   padding:26px 24px; box-shadow:0 20px 50px rgba(0,0,0,.3);
@@ -3659,7 +3660,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     studentName: '',
     studentClass: '',
     studentNo: '',
-    workTitle: ''
+    workTitle: '',
+    teacherOf: null      // รหัสห้องที่ผู้ใช้เป็นครูเจ้าของ (ใช้สลับไป-กลับบทบาทนักเรียน/ครู)
   };
   var unsubStudents = null, unsubOneStudent = null, unsubComments = null, unsubMyComments = null, unsubMyDoc = null;
   var unsubRoomDoc = null;   // เฝ้าดูสถานะเปิด/ปิดรับงานของห้อง
@@ -3812,6 +3814,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           ? '<span class="cr-st cr-st-closed">🔒 ครูปิดรับงานแล้ว</span>'
           : '<span class="cr-chip" id="cr-sync-chip">☁️ ซิงก์อัตโนมัติ</span>') +
         '<button class="cr-mini-btn" onclick="crPrintPractice(\'self\')" title="พิมพ์ผลงานเป็นใบฝึกคัดลายมือ A4">✍️ พิมพ์ฝึกคัดลายมือ</button>' +
+        (S.teacherOf && S.teacherOf === S.roomCode ? '<button class="cr-mini-btn" onclick="crBackToTeacher()">👩‍🏫 กลับเป็นครู</button>' : '') +
         '<button class="cr-mini-btn danger" onclick="crLeaveRoom()">ออกจากห้อง</button>';
     } else {
       bar.innerHTML =
@@ -3821,6 +3824,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           (S.roomActive !== false ? '🔓 เปิดรับงาน' : '🔒 ปิดรับงานแล้ว') + '</span>' +
         '<button class="cr-mini-btn" onclick="crOpenDashboard()">📊 แดชบอร์ด</button>' +
         '<button class="cr-mini-btn" onclick="crOpenRoomQr()">📱 QR</button>' +
+        '<button class="cr-mini-btn" onclick="crTeacherAsStudent()" title="เข้าห้องนี้ในบทบาทนักเรียน (ทดลองแต่ง/ทำตัวอย่าง)">🧑‍🎓 เข้าเป็นนักเรียน</button>' +
         '<button class="cr-mini-btn" onclick="crToggleRoomActive()">' +
           (S.roomActive !== false ? '🔒 ปิดรับงาน' : '🔓 เปิดรับงาน') + '</button>' +
         '<button class="cr-mini-btn danger" onclick="crLeaveRoom()">🚪 ออกจากห้อง</button>';
@@ -3833,8 +3837,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ===== ส่วนของครู: สร้างห้อง / แดชบอร์ด / คอมเมนต์ =====
   // ============================================================
   window.crOpenClassroomMenu = function () {
-    if (S.roomCode && S.role === 'teacher') { crOpenDashboard(); return; }
     if (S.roomCode && S.role === 'student') { openModal('crInboxModal'); crRenderInbox(); return; }
+    // ครู (มีห้องเปิดอยู่แล้ว) กดโหมดห้องเรียน → เมนูสร้างห้องใหม่/สร้างเพิ่ม
     $('cr-menu-status').textContent = '';
     openModal('crMenuModal');
   };
@@ -3869,8 +3873,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         code: code, title: title, teacher: teacher, pin: pin,
         createdAt: Date.now(), stanzas: stanzaCount(), active: true
       });
+      crQuietLeave();
       S.role = 'teacher'; S.roomCode = code; S.roomTitle = title; S.roomTeacher = teacher;
-      S.roomActive = true;
+      S.roomActive = true; S.teacherOf = null; S.studentId = null;
+      crCloseModal('crDashModal');
       rememberMyRoom({ code: code, title: title, teacher: teacher, createdAt: Date.now(), active: true });
       saveSession(); updateBadgeBar();
       crCloseModal('crCreateModal');
@@ -4131,6 +4137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       S.studentName = name; S.studentClass = cls; S.studentNo = no;
       if (prev) S.workTitle = prev.workTitle || '';
       rememberDevice(code, { studentId: sid, name: name, cls: cls, no: no, lastPush: Date.now() });
+      if (S.teacherOf) crQuietLeave();   // ครูเข้าเป็นนักเรียน: หยุดฟังแดชบอร์ดครู
       pendingRoomCode = null;
       saveSession(); updateBadgeBar();
       crCloseModal('crStudentModal');
@@ -4191,11 +4198,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // คืน true เมื่อเรียกคืนสำเร็จ (ไม่ต้องกรอกชื่อซ้ำ)
-  async function crResumeFromDevice(code, quiet) {
+  async function crResumeFromDevice(code, quiet, fromTeacher) {
     var d = db_();
     var rec = loadDevice()[code];
     if (!d || !rec || !rec.studentId) return false;
-    if (S.role === 'teacher') return false;
+    if (S.role === 'teacher' && !fromTeacher) return false;
     resuming = true;
     try {
       var doc = await d.collection(CR_ROOMS).doc(code).collection('students').doc(rec.studentId).get();
@@ -4204,7 +4211,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         resuming = false; return false;
       }
       var data = doc.data() || {};
-      var switching = !!(S.roomCode && S.roomCode !== code);
+      var switching = !!(fromTeacher || (S.roomCode && S.roomCode !== code));
       if (switching) crQuietLeave();
       S.role = 'student'; S.roomCode = code; S.studentId = rec.studentId;
       S.studentName = data.name || rec.name || ''; S.studentClass = data.cls || rec.cls || ''; S.studentNo = data.no || rec.no || '';
@@ -4644,6 +4651,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   // ---------- ออกจากห้อง ----------
+  // ครูเข้าห้องของตัวเองในบทบาทนักเรียน
+  window.crTeacherAsStudent = async function () {
+    if (S.role !== 'teacher' || !S.roomCode) return;
+    var code = S.roomCode, title = S.roomTitle, teacher = S.roomTeacher, active = S.roomActive;
+    crCloseModal('crDashModal'); crCloseModal('crWorkModal');
+    // เคยเข้าเป็นนักเรียนจากเครื่องนี้แล้ว → กลับเข้างานเดิมทันที
+    if (loadDevice()[code]) {
+      crQuietLeave(); S.teacherOf = code;
+      var tmpRole = S.role; S.role = null;
+      var ok = await crResumeFromDevice(code, false, true);
+      if (ok) { S.teacherOf = code; saveSession(); updateBadgeBar(); return; }
+      S.role = tmpRole; startTeacherListener();
+    }
+    S.teacherOf = code; S.roomTitle = title; S.roomTeacher = teacher; S.roomActive = active;
+    saveSession();
+    pendingRoomCode = code;
+    $('cr-student-roomtitle').textContent = (title || 'ห้องเรียน') + ' · รหัสห้อง ' + code + ' (เข้าเป็นนักเรียน)';
+    $('cr-student-status').textContent = '';
+    openModal('crStudentModal');
+    setTimeout(function () { $('cr-student-name').focus(); }, 200);
+  };
+
+  window.crBackToTeacher = function () {
+    if (!(S.teacherOf && S.teacherOf === S.roomCode)) return;
+    flushSync();
+    var code = S.roomCode;
+    crQuietLeave();
+    S.role = 'teacher'; S.studentId = null; S.studentName = ''; S.studentClass = ''; S.studentNo = ''; S.workTitle = '';
+    S.teacherOf = null;
+    saveSession(); updateBadgeBar(); updateBell();
+    startTeacherListener(); listenRoomStatus();
+    crOpenDashboard();
+  };
+
   window.crLeaveRoom = function () {
     var msg = S.role === 'teacher'
       ? 'ต้องการออกจากห้องเรียนนี้หรือไม่? (ข้อมูลนักเรียนยังอยู่ในระบบ กลับเข้าได้ด้วยรหัสห้อง)'
@@ -4655,7 +4696,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     unsubStudents = unsubOneStudent = unsubComments = unsubMyComments = unsubMyDoc = unsubRoomDoc = null;
     S.role = null; S.roomCode = null; S.studentId = null; S.studentName = '';
     S.studentClass = ''; S.studentNo = ''; S.roomTitle = ''; S.roomTeacher = ''; S.workTitle = '';
-    S.roomActive = true;
+    S.roomActive = true; S.teacherOf = null;
     myComments = []; studentsCache = {};
     clearSession(); updateBadgeBar(); updateBell();
     ['crDashModal', 'crWorkModal', 'crInboxModal', 'crQrModal'].forEach(crCloseModal);
