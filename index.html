@@ -302,6 +302,13 @@
     }
     .result-placeholder { color: #6c757d; font-style: italic; text-align: center; padding: 40px 20px; }
     .result-verse { margin-bottom: 5px; }
+    .res-bad { color:#dc2626; font-weight:700; text-decoration: underline wavy #dc2626; text-underline-offset:4px; background:#fee2e2; border-radius:4px; padding:0 2px; }
+    .res-miss { color:#dc2626; font-weight:700; }
+    .res-legend { margin-top:14px; padding:8px 12px; border-radius:10px; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; font-size:.85rem; }
+    .vg-list { text-align:left; margin:10px 0 4px; padding:0; list-style:none; max-height:40vh; overflow-y:auto; font-size:.92rem; }
+    .vg-list li { padding:6px 10px; margin-bottom:6px; border-radius:8px; background:#fef2f2; border:1px solid #fecaca; color:#991b1b; }
+    .word-input.vg-flash { animation: vgFlash 1.2s ease-in-out 2; }
+    @keyframes vgFlash { 0%,100% { box-shadow:0 0 0 0 rgba(220,38,38,0); } 50% { box-shadow:0 0 0 5px rgba(220,38,38,.45); } }
     .result-stanza-gap { margin-bottom: 25px; }
     .verse-line { color: #2c3e50; font-weight: 500; }
 
@@ -1152,6 +1159,21 @@
   </div>
 </div>
 
+<!-- ===== เตือนก่อนคัดลอก/บันทึก (สัมผัสไม่ถูก/คำไม่ครบ) ===== -->
+<div id="validateModal" class="modal-overlay">
+  <div class="mini-modal-box">
+    <p class="mini-modal-title">⚠️ ยังมีจุดที่ต้องแก้ไขก่อน<span id="vg-action-name"></span></p>
+    <p class="mini-modal-body" id="vg-summary"></p>
+    <ul class="vg-list" id="vg-list"></ul>
+    <div class="modal-btn-row" style="margin-top:10px;">
+      <button class="modal-btn modal-btn-primary" onclick="yaniValidateFix()">✏️ กลับไปแก้ไข</button>
+    </div>
+    <div class="modal-btn-row" style="margin-top:8px;">
+      <button class="modal-btn modal-btn-cancel" id="vg-continue" onclick="yaniValidateContinue()">ดำเนินการต่อทั้งที่ยังไม่ถูก</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== QR CODE MODAL ===== -->
 <div id="qrModal" class="modal-overlay">
   <div class="mini-modal-box qr-box">
@@ -1940,25 +1962,112 @@ function checkVowelOveruse() {
   }
 }
 
+// ===== ตรวจสัมผัส/คำไม่ครบ (ใช้ทั้งกล่องผลลัพธ์ และตอนกดคัดลอก/บันทึก) =====
+function yaniAnalyze() {
+  const bad = new Set();      // ช่อง (input) ที่สัมผัสไม่ถูก
+  const issues = [];          // รายการแจ้งเตือน
+  let hasContent = false, firstProblem = null;
+
+  // 1) คำไม่ครบ
+  const verseStat = {};
+  for (let s = 1; s <= totalStanzas; s++) {
+    for (let v = 1; v <= 4; v++) {
+      const id = vid(s, v), inputs = verseInputs(id);
+      let filled = 0;
+      inputs.forEach(inp => { if (inp.value.trim()) filled += getSpan(inp); });
+      if (filled) hasContent = true;
+      verseStat[id] = { filled, total: inputs.length };
+      if (filled < inputs.length) {
+        const empty = inputs.find(inp => !isAbsorbed(inp) && !inp.value.trim());
+        if (!firstProblem && empty) firstProblem = empty;
+        issues.push({ type: 'missing', verse: id, text: `บทที่ ${s} วรรคที่ ${v}: ${filled === 0 ? 'ยังไม่ได้แต่ง' : 'ขาดอีก ' + (inputs.length - filled) + ' คำ'}` });
+      }
+    }
+  }
+
+  // 2) สัมผัสไม่ถูก
+  const pairs = [];
+  for (let s = 1; s <= totalStanzas; s++) {
+    pairs.push([{ verse: vid(s,1), position: 5 }, { verse: vid(s,2), position: 3 }, 'ในบท', s]);
+    pairs.push([{ verse: vid(s,2), position: 6 }, { verse: vid(s,3), position: 5 }, 'ในบท', s]);
+    if (s < totalStanzas) pairs.push([{ verse: vid(s,4), position: 6 }, { verse: vid(s+1,2), position: 6 }, 'ข้ามบท', s]);
+  }
+  pairs.forEach(([a, b, kind, s]) => {
+    const ca = rhymeCell(a.verse, a.position), cb = rhymeCell(b.verse, b.position);
+    if (!ca || !cb || !ca.word || !cb.word) return;
+    if (ca.startsAtPos || cb.startsAtPos) return;           // ตรวจไม่ได้ ไม่นับเป็นผิด
+    if (!checkSamphus(ca.word, cb.word)) {
+      bad.add(ca.input); bad.add(cb.input);
+      if (!firstProblem) firstProblem = ca.input;
+      issues.push({ type: 'rhyme', text: `สัมผัส${kind}ไม่ถูก (บทที่ ${s}): "${ca.word}" กับ "${cb.word}"` });
+    }
+  });
+  return { bad, issues, hasContent, firstProblem };
+}
+
 // ===== RESULT =====
 function updateResult() {
   const rc = document.getElementById('result-content');
+  const an = yaniAnalyze();
   let html = '', any = false;
   for (let s = 1; s <= totalStanzas; s++) {
     let sHTML = '', sAny = false;
+    const stanzaHas = [1,2,3,4].some(v => verseInputs(vid(s,v)).some(inp => inp.value.trim()));
     for (let v = 1; v <= 4; v++) {
-      const inputs = document.querySelectorAll(`[data-verse="${vid(s,v)}"]`);
-      const words = [];
-      inputs.forEach(inp => { const w = inp.value.trim(); if (w) words.push(w); });
-      if (words.length) { sHTML += `<div class="result-verse"><div class="verse-line">${words.join('')}</div></div>`; sAny = any = true; }
+      const inputs = verseInputs(vid(s,v));
+      const parts = [];
+      let n = 0;
+      inputs.forEach(inp => {
+        if (isAbsorbed(inp)) return;
+        const w = inp.value.trim();
+        if (w) { n++; parts.push(an.bad.has(inp) ? `<span class="res-bad">${w}</span>` : w); }
+        else if (n > 0) parts.push('<span class="res-miss">＿</span>');
+      });
+      const filled = inputs.reduce((a, inp) => a + (inp.value.trim() ? getSpan(inp) : 0), 0);
+      if (n) {
+        if (filled < inputs.length) parts.push(`<span class="res-miss"> (ขาด ${inputs.length - filled} คำ)</span>`);
+        sHTML += `<div class="result-verse"><div class="verse-line">${parts.join('')}</div></div>`; sAny = any = true;
+      } else if (stanzaHas) {
+        sHTML += `<div class="result-verse"><div class="verse-line res-miss">＿＿＿ (วรรคที่ ${v} ยังไม่ได้แต่ง)</div></div>`; sAny = any = true;
+      }
     }
     if (sAny) html += `<div class="${s < totalStanzas ? 'result-stanza-gap' : ''}">${sHTML}</div>`;
   }
+  if (any && an.issues.length) html += `<div class="res-legend">🔴 สีแดง = จุดที่ต้องแก้ (สัมผัสไม่ถูก / คำไม่ครบ) — เหลืออีก ${an.issues.length} จุด</div>`;
   rc.innerHTML = any ? html : '<div class="result-placeholder">กรุณากรอกคำในแต่ละวรรคเพื่อดูผลลัพธ์</div>';
+}
+
+// ===== เตือนก่อนคัดลอก/บันทึกภาพ ถ้าสัมผัสยังไม่ถูกหรือคำไม่ครบ =====
+let _vgPending = null, _vgFocus = null;
+function yaniGuard(label, fn) {
+  const an = yaniAnalyze();
+  if (!an.hasContent || !an.issues.length) { fn(); return; }   // ว่างเปล่า → ให้ฟังก์ชันเดิมแจ้งเตือนเอง
+  _vgPending = fn; _vgFocus = an.firstProblem;
+  document.getElementById('vg-action-name').textContent = ' (' + label + ')';
+  document.getElementById('vg-summary').textContent = `พบ ${an.issues.length} จุดที่สัมผัสยังไม่ถูกหรือคำยังไม่ครบ กรุณาแก้ไขก่อน`;
+  document.getElementById('vg-continue').textContent = 'ดำเนินการต่อทั้งที่ยังไม่ถูก (' + label + ')';
+  const shown = an.issues.slice(0, 8).map(i => `<li>${i.type === 'rhyme' ? '🔴' : '✍️'} ${i.text}</li>`);
+  if (an.issues.length > 8) shown.push(`<li>… และอีก ${an.issues.length - 8} จุด</li>`);
+  document.getElementById('vg-list').innerHTML = shown.join('');
+  document.getElementById('validateModal').classList.add('active');
+}
+function yaniValidateFix() {
+  document.getElementById('validateModal').classList.remove('active');
+  const el = _vgFocus; _vgPending = null; _vgFocus = null;
+  if (el) {
+    try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+    setTimeout(() => { try { el.focus(); } catch (e) {} el.classList.add('vg-flash'); setTimeout(() => el.classList.remove('vg-flash'), 2600); }, 350);
+  }
+}
+function yaniValidateContinue() {
+  document.getElementById('validateModal').classList.remove('active');
+  const fn = _vgPending; _vgPending = null; _vgFocus = null;
+  if (fn) fn();
 }
 
 // ===== COPY =====
 function copyToClipboard() {
+  if (!window._yaniOkCopy) { yaniGuard('คัดลอก', () => { window._yaniOkCopy = true; try { copyToClipboard(); } finally { window._yaniOkCopy = false; } }); return; }
   const btn = document.getElementById('copy-button');
   const lines = [];
   for (let s = 1; s <= totalStanzas; s++) {
@@ -2253,6 +2362,7 @@ function copyQrLink() {
 
 // ===== SAVE COMPOSITION AS IMAGE =====
 function openSaveImageModal() {
+  if (!window._yaniOkSave) { yaniGuard('บันทึกภาพ', () => { window._yaniOkSave = true; try { openSaveImageModal(); } finally { window._yaniOkSave = false; } }); return; }
   try { var _t = (window.getMainWorkTitle && window.getMainWorkTitle()) || ''; if (_t) document.getElementById('si-topic').value = _t; } catch(e) {}
   let hasContent = false;
   document.querySelectorAll('.word-input').forEach(inp => { if (inp.value.trim()) hasContent = true; });
@@ -3534,6 +3644,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   var CR_SEEN_KEY    = 'kaph_yani_room_seen_comments_v1';
   var CR_ROOMS       = 'yani_rooms';          // ชื่อ collection บน Firestore
   var CR_MYROOMS_KEY = 'kaph_yani_my_rooms_v1'; // ทะเบียนห้องที่ครูสร้างจากเครื่องนี้
+  var CR_DEVICE_KEY  = 'kaph_yani_device_students_v1'; // ผลงานนักเรียนที่เคยเข้าห้องจากเครื่องนี้ (รหัสห้อง → ตัวตน)
+  var resuming = false;   // กำลังเรียกคืนงานเดิม — ห้ามซิงก์ทับขึ้นคลาวด์
   var VERSE_LEN      = { 1: 5, 2: 6, 3: 5, 4: 6 };
 
   // ---------- สถานะภายใน ----------
@@ -3588,6 +3700,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (raw) { var o = JSON.parse(raw); for (var k in o) if (o.hasOwnProperty(k)) S[k] = o[k]; return !!S.roomCode; }
     } catch (e) {}
     return false;
+  }
+  function loadDevice() { try { return JSON.parse(localStorage.getItem(CR_DEVICE_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function saveDevice(m) { try { localStorage.setItem(CR_DEVICE_KEY, JSON.stringify(m)); } catch (e) {} }
+  function rememberDevice(code, patch) {
+    var m = loadDevice(), r = m[code] || {};
+    for (var k in patch) if (patch.hasOwnProperty(k)) r[k] = patch[k];
+    m[code] = r;
+    var keys = Object.keys(m);
+    if (keys.length > 60) { delete m[keys[0]]; }
+    saveDevice(m);
   }
   function loadSeen() { try { seenIds = JSON.parse(localStorage.getItem(CR_SEEN_KEY) || '{}'); } catch (e) { seenIds = {}; } }
   function saveSeen() { try { localStorage.setItem(CR_SEEN_KEY, JSON.stringify(seenIds)); } catch (e) {} }
@@ -4008,6 +4130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       S.role = 'student'; S.roomCode = code; S.studentId = sid;
       S.studentName = name; S.studentClass = cls; S.studentNo = no;
       if (prev) S.workTitle = prev.workTitle || '';
+      rememberDevice(code, { studentId: sid, name: name, cls: cls, no: no, lastPush: Date.now() });
       pendingRoomCode = null;
       saveSession(); updateBadgeBar();
       crCloseModal('crStudentModal');
@@ -4058,6 +4181,62 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   var roomClosedReason = false;   // แยกกรณี "ไม่พบห้อง" ออกจาก "ห้องปิดรับงาน"
 
+  // ---------- กลับเข้างานเดิมด้วยอุปกรณ์เดิม (สแกน QR ห้องเดิมแล้วแก้งานเดิมต่อได้เลย) ----------
+  function crQuietLeave() {
+    [unsubStudents, unsubOneStudent, unsubComments, unsubMyComments, unsubMyDoc, unsubRoomDoc].forEach(function (u) {
+      if (u) { try { u(); } catch (e) {} }
+    });
+    unsubStudents = unsubOneStudent = unsubComments = unsubMyComments = unsubMyDoc = unsubRoomDoc = null;
+    myComments = []; studentsCache = {};
+  }
+
+  // คืน true เมื่อเรียกคืนสำเร็จ (ไม่ต้องกรอกชื่อซ้ำ)
+  async function crResumeFromDevice(code, quiet) {
+    var d = db_();
+    var rec = loadDevice()[code];
+    if (!d || !rec || !rec.studentId) return false;
+    if (S.role === 'teacher') return false;
+    resuming = true;
+    try {
+      var doc = await d.collection(CR_ROOMS).doc(code).collection('students').doc(rec.studentId).get();
+      if (!doc.exists) {              // ครูลบรายชื่อ/ห้องแล้ว → ล้างทะเบียนเครื่องนี้ แล้วให้เข้าใหม่ตามปกติ
+        var m = loadDevice(); delete m[code]; saveDevice(m);
+        resuming = false; return false;
+      }
+      var data = doc.data() || {};
+      var switching = !!(S.roomCode && S.roomCode !== code);
+      if (switching) crQuietLeave();
+      S.role = 'student'; S.roomCode = code; S.studentId = rec.studentId;
+      S.studentName = data.name || rec.name || ''; S.studentClass = data.cls || rec.cls || ''; S.studentNo = data.no || rec.no || '';
+      S.workTitle = data.workTitle || '';
+      var rd = await d.collection(CR_ROOMS).doc(code).get();
+      if (rd.exists) { var r = rd.data() || {}; S.roomTitle = r.title || ''; S.roomTeacher = r.teacher || ''; S.roomActive = (r.active !== false); }
+
+      // เลือกใช้งานจากคลาวด์หรือในเครื่อง
+      var cur = collectWork(), restored = false;
+      if (data.words) {
+        if (switching || cur.filled === 0) { applyWorkToInputs(data); restored = true; }
+        else if (crWorkDiffers(cur, data)) {
+          // คลาวด์ใหม่กว่าการบันทึกล่าสุดจากเครื่องนี้ = มีการแก้จากที่อื่น → ใช้คลาวด์
+          if ((data.updatedAt || 0) > (rec.lastPush || 0) + 5000) { applyWorkToInputs(data); restored = true; }
+        }
+      }
+      saveSession(); updateBadgeBar();
+      resuming = false;
+      try { startStudentSync(); } catch (e2) { console.warn('[classroom] sync', e2); }
+      if (!quiet) {
+        try {
+          crToast('กลับเข้างานเดิมแล้ว',
+            'ยินดีต้อนรับกลับมา ' + (S.studentName || '') + ' — ' + (restored ? 'ระบบนำบทประพันธ์เดิมกลับมาให้แล้ว' : 'ทำงานเดิมต่อได้เลย') + ' แต่งต่อและแก้ไขได้ทันที', false);
+        } catch (e3) {}
+      }
+      return true;
+    } catch (e) {
+      resuming = false;
+      return false;
+    }
+  }
+
   async function openRoomByCode(code) {
     var d = db_();
     if (!d) return false;
@@ -4068,6 +4247,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       var r = doc.data();
       if (r.active === false) { roomClosedReason = true; return false; }   // ครูปิดรับงานแล้ว
       roomClosedReason = false;
+      if (await crResumeFromDevice(code)) return true;   // อุปกรณ์เดิม + ห้องเดิม → เข้างานเดิมทันที
       pendingRoomCode = code;
       S.roomActive = true;
       S.roomTitle = r.title || '';
@@ -4081,7 +4261,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ---------- ซิงก์ผลงานนักเรียนขึ้นคลาวด์ ----------
   function pushWork() {
     var d = db_();
-    if (!d || S.role !== 'student' || !S.roomCode || !S.studentId) return;
+    if (!d || S.role !== 'student' || !S.roomCode || !S.studentId || resuming) return;
     if (S.roomActive === false) {           // ครูปิดรับงานแล้ว — ไม่ส่งขึ้นคลาวด์
       var c0 = $('cr-sync-chip'); if (c0) c0.textContent = '🔒 ปิดรับงานแล้ว';
       return;
@@ -4094,6 +4274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       updatedAt: Date.now(),
       stanzas: work.stanzas, words: work.words, filled: work.filled, total: work.total
     }, { merge: true }).then(function () {
+      rememberDevice(S.roomCode, { lastPush: Date.now() });
       if (chip) chip.textContent = '☁️ บันทึกแล้ว ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
     }).catch(function () {
       if (chip) chip.textContent = '⚠️ ซิงก์ไม่สำเร็จ';
@@ -5318,7 +5499,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     var had = loadSession();
     if (had) {
       updateBadgeBar();
-      if (S.role === 'student') startStudentSync();
+      if (S.role === 'student') {
+        // เปิดหน้าซ้ำ/สแกน QR เดิม: เรียกคืนงานจากคลาวด์ก่อนซิงก์ (กันงานเดิมถูกเขียนทับด้วยหน้าว่าง)
+        var _c = S.roomCode;
+        rememberDevice(_c, { studentId: S.studentId, name: S.studentName, cls: S.studentClass, no: S.studentNo });
+        crResumeFromDevice(_c, true).then(function (ok) { if (!ok && S.role === 'student') startStudentSync(); });
+      }
       else if (S.role === 'teacher') startTeacherListener();
     }
 
